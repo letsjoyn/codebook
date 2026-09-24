@@ -9,6 +9,10 @@
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<!-- Monaco Editor Loader -->
+<script>var require = { paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } };</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -218,29 +222,11 @@ select option{background:var(--bg);color:var(--fg)}
 .code-dot:nth-child(3){background:#27c93f}
 .line-count{margin-left:auto;font-size:10px;color:var(--fg3);font-family:'JetBrains Mono',monospace}
 .code-frame{position:relative;height:400px;min-height:200px;overflow:hidden;background:var(--code-bg);resize:vertical;}
-.code-highlight,.code-ta{position:absolute;inset:0;margin:0;padding:16px 18px 16px 46px;tab-size:2;white-space:pre;word-wrap:normal;font:13px/1.7 'JetBrains Mono',ui-monospace,monospace}
-.code-highlight{pointer-events:none;color:var(--fg);overflow:hidden;border:none;background:transparent}
-.code-ta{display:block;width:100%;height:100%;border:none;outline:none;background:transparent;color:transparent;caret-color:var(--fg);overflow:auto;z-index:1;resize:none;}
-.code-ta::selection,.code-ta::-moz-selection{background:rgba(255,255,255,.12)}
-.code-lines{position:absolute;left:0;top:0;bottom:0;width:38px;padding:16px 0;font:13px/1.7 'JetBrains Mono',ui-monospace,monospace;color:var(--fg3);background:var(--code-bg);z-index:5;user-select:none;pointer-events:none;text-align:right;overflow:hidden;border-right:1px solid var(--border)}
-.code-lines div{padding-right:8px;}
 .code-status{height:24px;background:var(--bg);border-top:1px solid var(--border);padding:0 12px;display:flex;align-items:center;color:var(--fg3);font-size:10px;font-family:'JetBrains Mono',monospace;gap:8px}
 .code-status-dot{width:5px;height:5px;background:var(--fg3);display:inline-block;margin-right:3px}
 .code-status-dot.unsaved{background:var(--fg2)}
 .code-status-dot.synced{background:#10b981}
 [data-theme="light"] .code-status-dot.synced{background:#059669}
-
-/* Syntax tokens */
-.tk-keyword{color:#c792ea}
-.tk-string{color:#c3e88d}
-.tk-number{color:#f78c6c}
-.tk-comment{color:#546e7a;font-style:italic}
-.tk-type{color:#82aaff}
-[data-theme="light"] .tk-keyword{color:#7c3aed}
-[data-theme="light"] .tk-string{color:#087f5b}
-[data-theme="light"] .tk-number{color:#b35c00}
-[data-theme="light"] .tk-comment{color:#9e9e9e;font-style:italic}
-[data-theme="light"] .tk-type{color:#1565c0}
 
 /* Mobile-only month card container: hidden on desktop */
 .mob-months-wrap{display:none}
@@ -1146,11 +1132,7 @@ function renderEditor() {
               </select>
               <span class="line-count" id="lineCount">${app.code.split('\n').length} lines</span>
             </div>
-            <div class="code-frame" id="codeFrame">
-              <div class="code-lines" id="codeLines"></div>
-              <pre class="code-highlight" id="codeHighlight" aria-hidden="true"></pre>
-              <textarea class="code-ta" id="codeTA" spellcheck="false" wrap="off">${esc(app.code)}</textarea>
-            </div>
+            <div class="code-frame" id="codeFrame"></div>
             <div class="code-status" id="codeStatus">
               <span class="code-status-dot"></span>
               <span id="statusTxt">Saved locally</span>
@@ -1210,7 +1192,7 @@ function bindEditor(prob, app) {
   document.querySelector('#addApproachBtn')?.addEventListener('click', () => {
     const name = prompt('Approach name', 'Approach ' + (prob.approaches.length + 1));
     if (!name) return;
-    const a = { id: uid(), name, language: 'cpp', complexity: '', code: '// Write your solution here\n' };
+    const a = { id: uid(), name, language: app ? app.language : 'cpp', complexity: '', code: '// Write your solution here\n' };
     prob.approaches.push(a);
     activeApp = a.id;
     persist(false);
@@ -1231,7 +1213,10 @@ function bindEditor(prob, app) {
   };
   bind('#appTime', updateComplexity);
   bind('#appSpace', updateComplexity);
-  bind('#langSelect', v => { app.language = v; });
+  bind('#langSelect', v => { 
+    app.language = v; 
+    if (window.monacoEditor) monaco.editor.setModelLanguage(window.monacoEditor.getModel(), v);
+  });
 
   document.querySelector('#delApproachBtn')?.addEventListener('click', () => {
     if (!confirm(`Delete "${app.name}"?`)) return;
@@ -1242,83 +1227,26 @@ function bindEditor(prob, app) {
     renderEditor();
   });
 
-  // Code editor
-  const ta = document.querySelector('#codeTA');
-  const hl = document.querySelector('#codeHighlight');
-  const lineNums = document.querySelector('#codeLines');
-  const lc = document.querySelector('#lineCount');
-
-  const paint = () => {
-    hl.innerHTML = highlight(ta.value, app.language);
-    hl.scrollTop = ta.scrollTop;
-    hl.scrollLeft = ta.scrollLeft;
-    const lines = ta.value.split('\n');
-    lineNums.innerHTML = lines.map((_,i) => `<div>${i+1}</div>`).join('');
-    lineNums.scrollTop = ta.scrollTop;
-    if (lc) lc.textContent = `${lines.length} lines`;
-  };
-
-  ta.addEventListener('input', () => { app.code = ta.value; changed(); paint(); });
-  ta.addEventListener('scroll', () => {
-    hl.scrollTop = ta.scrollTop;
-    hl.scrollLeft = ta.scrollLeft;
-    lineNums.scrollTop = ta.scrollTop;
-  });
-
-  ta.addEventListener('keydown', e => {
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      const s = ta.selectionStart, end = ta.selectionEnd;
-      ta.value = ta.value.slice(0, s) + '  ' + ta.value.slice(end);
-      ta.selectionStart = ta.selectionEnd = s + 2;
-      ta.dispatchEvent(new Event('input'));
-      return;
+  // Code editor (Monaco Integration)
+  const codeFrame = document.querySelector('#codeFrame');
+  if (codeFrame) {
+    if (window.monacoEditor) {
+      window.isSettingMonacoValue = true;
+      window.monacoEditor.setValue(app.code);
+      monaco.editor.setModelLanguage(window.monacoEditor.getModel(), app.language);
+      window.isSettingMonacoValue = false;
+      codeFrame.appendChild(window.monacoContainer);
+    } else {
+      window.pendingMonacoConfig = { code: app.code, lang: app.language };
     }
-    const pairs = { '(': ')', '[': ']', '{': '}', '"': '"', "'": "'" };
-    if (pairs[e.key] && !e.ctrlKey && !e.metaKey) {
-      e.preventDefault();
-      const s = ta.selectionStart, end = ta.selectionEnd;
-      ta.value = ta.value.slice(0, s) + e.key + pairs[e.key] + ta.value.slice(end);
-      ta.selectionStart = ta.selectionEnd = s + 1;
-      ta.dispatchEvent(new Event('input'));
-      return;
-    }
-    if (e.key === 'Enter') {
-      const s = ta.selectionStart, line = ta.value.slice(0, s).split('\n').pop();
-      const indent = (line.match(/^\s*/) || [''])[0];
-      e.preventDefault();
-      const extra = /[({[]\s*$/.test(line) ? '  ' : '';
-      const ins = '\n' + indent + extra;
-      ta.value = ta.value.slice(0, s) + ins + ta.value.slice(ta.selectionEnd);
-      const caret = s + ins.length;
-      ta.selectionStart = ta.selectionEnd = caret;
-      ta.dispatchEvent(new Event('input'));
-    }
-  });
-
-  paint();
+    
+    // Update line count dynamically
+    const lc = document.querySelector('#lineCount');
+    if (lc) lc.textContent = `${app.code.split('\\n').length} lines`;
+  }
 }
 
-// ─── Syntax highlight ──────────────────────────────────────────────────────
-function highlight(src, lang) {
-  const pat = /(?:\/\/[^\n]*|#[^\n]*|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`|\b(?:auto|bool|break|case|catch|char|class|const|continue|def|delete|do|double|else|enum|explicit|export|extern|false|float|for|friend|goto|if|import|inline|int|lambda|let|long|namespace|new|nullptr|operator|override|private|protected|public|register|return|short|signed|sizeof|static|struct|switch|template|this|throw|true|try|typedef|typename|union|unsigned|using|virtual|void|volatile|while|and|or|not|in|is|from|pass|yield|async|await|fn|mut|pub|impl|trait|type|where|mod|use|match|with|raise|del|elif|except|finally|global|nonlocal|print|super|self|None|True|False)\b|\b(?:vector|string|unordered_map|map|set|unordered_set|stack|queue|deque|pair|tuple|list|dict|int|str|float|bool|Array|Object|Promise|Function|Node|ListNode|TreeNode|Graph)\b|\b(?:0x[\da-f]+|\d+(?:\.\d+)?)\b)/gi;
-  let html = '', last = 0;
-  src.replace(pat, (tok, idx) => {
-    html += esc(src.slice(last, idx));
-    const cls = /^\/\//.test(tok) || /^#/.test(tok) ? 'tk-comment'
-      : /^["'`]/.test(tok) ? 'tk-string'
-      : /^\d|^0x/i.test(tok) ? 'tk-number'
-      : /^(vector|string|unordered_map|map|set|unordered_set|stack|queue|deque|pair|tuple|list|dict|Array|Object|Promise|Function|Node|ListNode|TreeNode|Graph)$/i.test(tok) ? 'tk-type'
-      : 'tk-keyword';
-    html += `<span class="${cls}">${esc(tok)}</span>`;
-    last = idx + tok.length;
-  });
-  return html + esc(src.slice(last)) + '\n';
-}
 
-function esc(s = '') {
-  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-}
 
 // ─── Folder modal ──────────────────────────────────────────────────────────
 let editFolderId = null;
@@ -1457,6 +1385,10 @@ document.querySelector('#search').addEventListener('input', e => {
 function applyTheme() {
   document.documentElement.dataset.theme = db.theme;
   document.querySelector('#themeBtn').textContent = db.theme === 'dark' ? 'Light' : 'Dark';
+  
+  if (window.monacoEditor) {
+    monaco.editor.setTheme(db.theme === 'dark' ? 'vs-dark' : 'vs');
+  }
 }
 document.querySelector('#themeBtn').addEventListener('click', () => {
   db.theme = db.theme === 'dark' ? 'light' : 'dark';
@@ -1921,6 +1853,55 @@ function toast(msg) {
 }
 
 // ─── Boot ──────────────────────────────────────────────────────────────────
+// Initialize Monaco Global
+window.monacoEditor = null;
+window.monacoContainer = document.createElement('div');
+window.monacoContainer.style.width = '100%';
+window.monacoContainer.style.height = '100%';
+window.isSettingMonacoValue = false;
+window.pendingMonacoConfig = null;
+
+require(['vs/editor/editor.main'], function() {
+  window.monacoEditor = monaco.editor.create(window.monacoContainer, {
+    value: '',
+    language: 'cpp',
+    theme: db.theme === 'dark' ? 'vs-dark' : 'vs',
+    automaticLayout: true,
+    minimap: { enabled: false },
+    scrollBeyondLastLine: false,
+    fontSize: 13,
+    fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+    lineHeight: 22,
+    renderLineHighlight: 'all',
+    bracketPairColorization: { enabled: true },
+    formatOnPaste: true,
+    padding: { top: 16, bottom: 16 }
+  });
+
+  window.monacoEditor.onDidChangeModelContent(() => {
+    if(activeApp && !window.isSettingMonacoValue) {
+       const app = getApp(activeFolder, activeProb, activeApp);
+       if(app) {
+         app.code = window.monacoEditor.getValue();
+         changed();
+         // Update line count
+         const lc = document.querySelector('#lineCount');
+         if (lc) lc.textContent = `${app.code.split('\\n').length} lines`;
+       }
+    }
+  });
+
+  if (window.pendingMonacoConfig) {
+    window.isSettingMonacoValue = true;
+    window.monacoEditor.setValue(window.pendingMonacoConfig.code);
+    monaco.editor.setModelLanguage(window.monacoEditor.getModel(), window.pendingMonacoConfig.lang);
+    window.isSettingMonacoValue = false;
+    const frame = document.querySelector('#codeFrame');
+    if (frame) frame.appendChild(window.monacoContainer);
+    window.pendingMonacoConfig = null;
+  }
+});
+
 applyTheme();
 renderTree();
 renderEditor();
