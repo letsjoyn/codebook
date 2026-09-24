@@ -1968,23 +1968,19 @@ document.querySelector('#emptyNewFolderBtn')?.addEventListener('click', () => op
 const VALID_ID = 'joyn';
 const VALID_PASS = 'codebook';
 
-const isAuth = localStorage.getItem('cb_auth') === 'true';
 const loginOverlay = document.querySelector('#loginOverlay');
-if (!isAuth) {
-  loginOverlay.style.display = 'flex';
-  const checkLogin = () => {
-    const id = document.querySelector('#loginId').value;
-    const pass = document.querySelector('#loginPass').value;
-    if (id === VALID_ID && pass === VALID_PASS) {
-      localStorage.setItem('cb_auth', 'true');
-      loginOverlay.style.display = 'none';
-    } else {
-      document.querySelector('#loginErr').textContent = 'Incorrect ID or Password';
-    }
-  };
-  document.querySelector('#loginBtn').addEventListener('click', checkLogin);
-  document.querySelector('#loginPass').addEventListener('keydown', e => { if (e.key === 'Enter') checkLogin(); });
-}
+loginOverlay.style.display = 'flex';
+const checkLogin = () => {
+  const id = document.querySelector('#loginId').value;
+  const pass = document.querySelector('#loginPass').value;
+  if (id === VALID_ID && pass === VALID_PASS) {
+    loginOverlay.style.display = 'none';
+  } else {
+    document.querySelector('#loginErr').textContent = 'Incorrect ID or Password';
+  }
+};
+document.querySelector('#loginBtn').addEventListener('click', checkLogin);
+document.querySelector('#loginPass').addEventListener('keydown', e => { if (e.key === 'Enter') checkLogin(); });
 </script>
 </body>
 </html>
