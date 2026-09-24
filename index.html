@@ -39,6 +39,16 @@
   --radius:0px;
   --shadow:none;
 }
+/* Login */
+.login-overlay{position:fixed;inset:0;background:var(--bg);z-index:9999;display:none;align-items:center;justify-content:center;font-family:'Inter',sans-serif}
+.login-box{background:var(--bg2);padding:40px;width:340px;border:1px solid var(--border);display:flex;flex-direction:column;gap:16px}
+.login-box h2{text-align:center;font-size:22px;letter-spacing:0.15em;font-weight:800;color:var(--fg);margin-bottom:0}
+.login-sub{text-align:center;font-size:11px;color:var(--fg3);letter-spacing:0.05em;text-transform:uppercase;margin-top:-10px;margin-bottom:8px}
+.login-input{background:var(--bg);border:1px solid var(--border);color:var(--fg);padding:12px;font-size:14px;outline:none;font-family:inherit}
+.login-input:focus{border-color:var(--fg3)}
+.login-btn{background:var(--fg);color:var(--bg);border:none;padding:12px;font-size:13px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;cursor:pointer;transition:opacity .15s}
+.login-btn:hover{opacity:0.8}
+.login-err{color:#ff5f56;font-size:12px;text-align:center;min-height:14px}
 [data-theme="light"]{
   --bg:#fff;
   --bg2:#fff;
@@ -559,6 +569,18 @@ select option{background:var(--bg);color:var(--fg)}
 </style>
 </head>
 <body>
+<!-- Login Overlay -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <h2>CODEBOOK</h2>
+    <div class="login-sub">Restricted Access</div>
+    <input type="text" id="loginId" class="login-input" placeholder="ID" autocomplete="off" spellcheck="false">
+    <input type="password" id="loginPass" class="login-input" placeholder="Password">
+    <div class="login-err" id="loginErr"></div>
+    <button class="login-btn" id="loginBtn">Enter</button>
+  </div>
+</div>
+
 <div class="app" id="app">
   <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
@@ -1917,12 +1939,10 @@ renderEditor();
 (async () => {
   const cloudData = await fbLoad();
   if (cloudData) {
-    // Firebase has data — use it (it's the source of truth)
     db = cloudData;
     localStorage.setItem('codebook-v2', JSON.stringify(db));
     fbSynced = true;
     updateSyncUI();
-    // Reset active selections to valid ones
     if (!activeFolder || !getFolder(activeFolder)) {
       activeFolder = db.folders[0]?.id || null;
       activeProb = db.folders[0]?.problems[0]?.id || null;
@@ -1934,7 +1954,6 @@ renderEditor();
     applyTheme();
     toast('Loaded from Firebase Cloud');
   } else {
-    // No cloud data yet — push local data up to Firebase
     fbSynced = false;
     updateSyncUI();
     await fbSave(JSON.stringify(db));
@@ -1944,6 +1963,28 @@ renderEditor();
 
 // Re-attach empty state btn after render
 document.querySelector('#emptyNewFolderBtn')?.addEventListener('click', () => openFolderModal());
+
+// ─── AUTHENTICATION ────────────────────────────────────────────────────────
+const VALID_ID = 'joyn';
+const VALID_PASS = 'codebook';
+
+const isAuth = localStorage.getItem('cb_auth') === 'true';
+const loginOverlay = document.querySelector('#loginOverlay');
+if (!isAuth) {
+  loginOverlay.style.display = 'flex';
+  const checkLogin = () => {
+    const id = document.querySelector('#loginId').value;
+    const pass = document.querySelector('#loginPass').value;
+    if (id === VALID_ID && pass === VALID_PASS) {
+      localStorage.setItem('cb_auth', 'true');
+      loginOverlay.style.display = 'none';
+    } else {
+      document.querySelector('#loginErr').textContent = 'Incorrect ID or Password';
+    }
+  };
+  document.querySelector('#loginBtn').addEventListener('click', checkLogin);
+  document.querySelector('#loginPass').addEventListener('keydown', e => { if (e.key === 'Enter') checkLogin(); });
+}
 </script>
 </body>
 </html>
