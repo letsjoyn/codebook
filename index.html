@@ -1243,10 +1243,12 @@ function bindEditor(prob, app) {
     // Update line count dynamically
     const lc = document.querySelector('#lineCount');
     if (lc) lc.textContent = `${app.code.split('\\n').length} lines`;
-  }
+}
 }
 
-
+function esc(s = '') {
+  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
 
 // ─── Folder modal ──────────────────────────────────────────────────────────
 let editFolderId = null;
