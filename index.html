@@ -365,7 +365,12 @@ select option{background:var(--bg);color:var(--fg)}
   .sidebar.open{transform:none}
   .mobile-menu{display:flex}
   .main{height:100vh}
-  .content{padding:20px 16px 60px}
+  .content{padding:20px 16px 60px; max-width: 100vw; overflow-x: hidden;}
+  .title-input{font-size: 20px; min-width: 0;}
+  .url-input{min-width: 0; width: 100%;}
+  .approach-tools{gap: 10px;}
+  .tool-input{width: 100%;}
+  .code-shell{max-width: calc(100vw - 32px);}
 
   /* ── Tracker: full-page scrollable shell ── */
   .tracker-overlay{
@@ -408,8 +413,9 @@ select option{background:var(--bg);color:var(--fg)}
   .tracker-clock-time{font-size:22px;letter-spacing:0.06em}
   .tracker-clock-date{font-size:9px;letter-spacing:0.1em;margin-top:1px}
 
-  /* Hide right-side stats & fullscreen btn on mobile */
-  .tracker-head-right{display:none}
+  /* Hide right-side stats & fullscreen btn, keep close button */
+  .tracker-quick-stats, #trackerFullscreenBtn{display:none}
+  .tracker-head-right{display:flex; justify-content:center; width: 100%; padding-top: 4px; border-top: 1px solid var(--border);}
 
   /* ── Main view: single column ── */
   .tracker-main-view{
