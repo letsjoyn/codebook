@@ -1,0 +1,1954 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Codebook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#111;
+  --bg2:#111;
+  --bg3:#1a1a1a;
+  --bg4:#222;
+  --side:#0a0a0a;
+  --border:#2a2a2a;
+  --border2:#333;
+  --fg:#f5f5f5;
+  --fg2:#aaa;
+  --fg3:#555;
+  --accent:#f5f5f5;
+  --accent2:#f5f5f5;
+  --accent-glow:transparent;
+  --easy:#aaa;
+  --medium:#aaa;
+  --hard:#aaa;
+  --easy-bg:#1e1e1e;
+  --medium-bg:#1e1e1e;
+  --hard-bg:#1e1e1e;
+  --code-bg:#0d0d0d;
+  --radius:0px;
+  --shadow:none;
+}
+[data-theme="light"]{
+  --bg:#fff;
+  --bg2:#fff;
+  --bg3:#f5f5f5;
+  --bg4:#ebebeb;
+  --side:#fafafa;
+  --border:#e5e5e5;
+  --border2:#d5d5d5;
+  --fg:#111;
+  --fg2:#555;
+  --fg3:#999;
+  --accent:#111;
+  --accent2:#111;
+  --accent-glow:transparent;
+  --easy:#555;
+  --medium:#555;
+  --hard:#555;
+  --easy-bg:#f0f0f0;
+  --medium-bg:#f0f0f0;
+  --hard-bg:#f0f0f0;
+  --code-bg:#fafafa;
+  --shadow:none;
+}
+html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'Inter',system-ui,sans-serif;font-size:13px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input,textarea,select{font-family:inherit;font-size:inherit;color:inherit}
+button{cursor:pointer;border:none;background:none}
+a{color:inherit;text-decoration:none}
+select option{background:var(--bg);color:var(--fg)}
+
+/* ── Layout ── */
+.app{display:grid;grid-template-columns:260px 1fr;height:100vh;overflow:hidden}
+
+/* ── Sidebar ── */
+.sidebar{background:var(--side);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+
+/* Brand */
+.brand{padding:14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)}
+.brand-text{font-weight:700;font-size:12px;letter-spacing:0.1em;color:var(--fg)}
+.brand-count{margin-left:auto;font-size:10px;font-weight:500;color:var(--fg3)}
+
+/* Sidebar actions */
+.side-top{padding:10px 10px 0}
+.btn-new-folder{width:100%;display:flex;align-items:center;gap:7px;padding:8px 10px;background:transparent;color:var(--fg);border:1px solid var(--border2);font-weight:600;font-size:11px;letter-spacing:0.02em;transition:background .12s,border-color .12s}
+.btn-new-folder:hover{background:var(--bg4);border-color:var(--fg)}
+
+/* Search */
+.search-wrap{padding:10px}
+.search{width:100%;height:32px;background:var(--bg3);border:1px solid var(--border);padding:0 8px;color:var(--fg);outline:none;transition:border-color .12s;font-size:12px}
+.search:focus{border-color:var(--fg3)}
+.search::placeholder{color:var(--fg3)}
+
+/* Folder tree */
+.tree{flex:1;overflow-y:auto;padding:4px 8px 12px;scrollbar-width:thin;scrollbar-color:var(--border2) transparent}
+.tree::-webkit-scrollbar{width:4px}
+.tree::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+
+/* Folder */
+.folder-wrap{margin-bottom:2px}
+.folder-row{display:flex;align-items:center;gap:6px;padding:7px 8px;border-radius:8px;cursor:pointer;transition:background .12s;position:relative;user-select:none}
+.folder-row:hover{background:var(--bg3)}
+.folder-chevron{width:12px;height:12px;display:flex;align-items:center;justify-content:center;color:var(--fg3);transition:transform .15s;flex-shrink:0;font-size:9px}
+.folder-chevron.open{transform:rotate(90deg)}
+.folder-dot{width:6px;height:6px;flex-shrink:0;border-radius:0}
+.folder-name{flex:1;font-weight:600;font-size:12px;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.folder-name-edit{flex:1;background:transparent;border:none;outline:none;font-weight:600;font-size:12px;color:var(--fg);padding:0;min-width:0}
+.folder-count{font-size:10px;color:var(--fg3);flex-shrink:0}
+.folder-menu-btn{opacity:0;width:18px;height:18px;display:flex;align-items:center;justify-content:center;color:var(--fg3);font-size:14px;flex-shrink:0;transition:opacity .1s}
+.folder-row:hover .folder-menu-btn{opacity:1}
+.folder-menu-btn:hover{color:var(--fg)}
+
+/* Problems list */
+.problems-list{padding-left:18px;overflow:hidden;transition:max-height .2s ease;max-height:0}
+.problems-list.open{max-height:2000px}
+.problem-row{display:flex;align-items:center;gap:8px;padding:5px 8px;cursor:pointer;transition:background .1s;margin-bottom:1px}
+.problem-row:hover{background:var(--bg3)}
+.problem-row.active{background:var(--bg3);border-left:2px solid var(--fg)}
+.problem-title{flex:1;font-size:12px;font-weight:500;color:var(--fg2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.problem-row.active .problem-title{color:var(--fg);font-weight:600}
+.diff-badge{font-size:9px;font-weight:600;padding:1px 5px;flex-shrink:0;letter-spacing:0.03em;border:1px solid var(--border)}
+.diff-easy{color:var(--easy)}
+.diff-medium{color:var(--medium)}
+.diff-hard{color:var(--hard)}
+
+/* Add problem btn */
+.btn-add-problem{display:flex;align-items:center;gap:5px;padding:4px 8px;color:var(--fg3);font-size:11px;font-weight:500;width:100%;transition:color .1s;cursor:pointer;border:none;background:none;margin-top:1px}
+.btn-add-problem:hover{color:var(--fg)}
+
+/* Sidebar footer */
+.side-foot{border-top:1px solid var(--border);padding:8px 10px;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.foot-btn{flex:1;height:28px;background:transparent;border:1px solid var(--border);color:var(--fg3);font-size:11px;font-weight:500;display:flex;align-items:center;justify-content:center;gap:4px;transition:border-color .1s,color .1s}
+.foot-btn:hover{border-color:var(--border2);color:var(--fg)}
+.file-label{flex:1;height:28px;background:transparent;border:1px solid var(--border);color:var(--fg3);font-size:11px;font-weight:500;display:flex;align-items:center;justify-content:center;gap:4px;cursor:pointer;transition:border-color .1s,color .1s}
+.file-label:hover{border-color:var(--border2);color:var(--fg)}
+.file-label input{display:none}
+
+/* ── Main ── */
+.main{display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+
+/* Topbar */
+.topbar{height:48px;background:var(--bg);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:10px;flex-shrink:0}
+.breadcrumb{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--fg3);font-weight:500;overflow:hidden;flex:1;min-width:0}
+.breadcrumb-sep{opacity:.4;flex-shrink:0}
+.breadcrumb-item{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.breadcrumb-item.active{color:var(--fg);font-weight:600}
+.topbar-actions{display:flex;gap:6px;flex-shrink:0}
+.icon-btn{height:28px;min-width:28px;padding:0 10px;background:transparent;border:1px solid var(--border);color:var(--fg3);font-size:11px;font-weight:500;display:inline-flex;align-items:center;justify-content:center;gap:4px;transition:border-color .1s,color .1s}
+.icon-btn:hover{border-color:var(--border2);color:var(--fg)}
+.save-btn{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.save-btn:hover{opacity:.82;color:var(--bg)}
+
+/* Editor area */
+.editor-area{flex:1;overflow:auto;scrollbar-width:thin;scrollbar-color:var(--border2) transparent}
+.editor-area::-webkit-scrollbar{width:4px}
+.editor-area::-webkit-scrollbar-thumb{background:var(--border2)}
+
+/* Empty state */
+.empty-state{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--fg3);gap:12px;text-align:center;padding:40px}
+.empty-icon{font-size:32px;opacity:.2}
+.empty-title{font-size:15px;font-weight:700;color:var(--fg2)}
+.empty-sub{font-size:12px;color:var(--fg3);max-width:240px;line-height:1.6}
+.empty-btn{margin-top:8px;padding:9px 18px;background:var(--fg);color:var(--bg);font-weight:600;font-size:12px;transition:opacity .12s}
+.empty-btn:hover{opacity:.82}
+
+/* Problem editor content */
+.content{max-width:780px;margin:0 auto;padding:40px 48px 80px}
+@media(max-width:900px){.content{padding:24px 18px 60px}}
+
+/* Title row */
+.title-row{display:flex;align-items:flex-start;gap:12px;margin-bottom:6px}
+.title-input{flex:1;background:transparent;border:none;outline:none;font-size:26px;font-weight:700;letter-spacing:-0.02em;color:var(--fg);line-height:1.2;padding:4px 0}
+.title-input::placeholder{color:var(--fg3)}
+.title-actions{display:flex;gap:6px;padding-top:6px;flex-shrink:0}
+.danger-btn{height:28px;padding:0 10px;background:transparent;border:1px solid transparent;color:var(--fg3);font-size:11px;font-weight:500;transition:color .12s,border-color .12s}
+.danger-btn:hover{color:var(--fg);border-color:var(--border)}
+
+/* Meta row */
+.meta-row{display:flex;align-items:center;gap:10px;margin:10px 0 24px;flex-wrap:wrap}
+.diff-group{display:inline-flex;border:1px solid var(--border);height:26px;}
+.diff-btn{background:transparent;border:none;border-right:1px solid var(--border);padding:0 12px;font-size:11px;font-weight:600;color:var(--fg3);cursor:pointer;transition:color .12s,background .12s}
+.diff-btn:last-child{border-right:none}
+.diff-btn:hover{color:var(--fg);background:var(--bg3)}
+.diff-btn.active{background:var(--fg);color:var(--bg)}
+.url-input{flex:1;min-width:140px;height:28px;background:transparent;border:none;border-bottom:1px solid var(--border);padding:0 4px;color:var(--fg3);font-size:12px;outline:none;transition:border-color .12s}
+.url-input:focus{border-color:var(--fg3);color:var(--fg)}
+.url-input::placeholder{color:var(--fg3)}
+.open-link{display:inline-flex;align-items:center;gap:4px;height:26px;padding:0 9px;background:transparent;border:1px solid var(--border);color:var(--fg3);font-size:11px;font-weight:500;white-space:nowrap;transition:color .1s,border-color .1s}
+.open-link:hover{color:var(--fg);border-color:var(--border2)}
+
+/* Notes */
+.notes-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--fg3);margin-bottom:5px}
+.notes-input{width:100%;background:transparent;border:none;border-bottom:1px solid var(--border);padding:0 0 6px;color:var(--fg2);font-size:13px;resize:none;outline:none;min-height:38px;line-height:1.6;transition:border-color .12s}
+.notes-input:focus{border-color:var(--fg3)}
+
+/* Approaches */
+.approach-section{margin-top:28px}
+.approach-tabs-row{display:flex;align-items:center;border-bottom:1px solid var(--border)}
+.tab{height:34px;padding:0 14px;border:none;border-bottom:2px solid transparent;background:transparent;color:var(--fg3);font-size:12px;font-weight:500;cursor:pointer;transition:color .12s,border-color .12s;margin-bottom:-1px;white-space:nowrap}
+.tab:hover{color:var(--fg2)}
+.tab.active{color:var(--fg);border-bottom-color:var(--fg);font-weight:600}
+.add-tab-btn{margin-left:auto;height:34px;width:34px;background:transparent;border:none;color:var(--fg3);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:color .12s}
+.add-tab-btn:hover{color:var(--fg)}
+
+/* Approach tools */
+.approach-tools{display:flex;align-items:center;gap:20px;padding:12px 0 8px;flex-wrap:wrap}
+.tool-field{display:flex;flex-direction:column;gap:3px}
+.tool-label{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--fg3)}
+.tool-input{background:transparent;border:none;border-bottom:1px solid var(--border);padding:2px 0;color:var(--fg);font-size:12px;font-weight:600;outline:none;width:160px;transition:border-color .12s}
+.tool-input:focus{border-color:var(--fg3)}
+.tool-input.complexity{color:var(--fg2);font-weight:400;width:190px}
+.del-approach{margin-left:auto;height:26px;padding:0 9px;background:transparent;border:1px solid transparent;color:var(--fg3);font-size:11px;font-weight:500;cursor:pointer;transition:color .12s,border-color .12s;white-space:nowrap}
+.del-approach:hover{color:var(--fg);border-color:var(--border)}
+
+/* Code editor */
+.code-shell{border:1px solid var(--border);background:var(--code-bg)}
+.code-bar{height:34px;background:var(--bg);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 12px;gap:10px}
+.lang-select{background:transparent;border:none;color:var(--fg3);font-size:11px;font-weight:500;outline:none;cursor:pointer}
+.code-dots{display:flex;gap:5px;margin-right:4px}
+.code-dot{width:9px;height:9px;border-radius:50%}
+.code-dot:nth-child(1){background:#ff5f56}
+.code-dot:nth-child(2){background:#ffbd2e}
+.code-dot:nth-child(3){background:#27c93f}
+.line-count{margin-left:auto;font-size:10px;color:var(--fg3);font-family:'JetBrains Mono',monospace}
+.code-frame{position:relative;min-height:380px;overflow:auto;background:var(--code-bg)}
+.code-highlight,.code-ta{position:absolute;inset:0;margin:0;padding:16px 18px 16px 50px;tab-size:2;white-space:pre;word-wrap:normal;font:13px/1.7 'JetBrains Mono',ui-monospace,monospace}
+.code-highlight{pointer-events:none;color:var(--fg);overflow:hidden;border:none;background:transparent}
+.code-ta{display:block;width:100%;min-height:380px;resize:vertical;border:none;outline:none;background:transparent;color:transparent;caret-color:var(--fg);overflow:auto;z-index:1}
+.code-ta::selection,.code-ta::-moz-selection{background:rgba(255,255,255,.12)}
+.code-lines{position:absolute;left:0;top:0;padding:16px 8px 16px 8px;font:13px/1.7 'JetBrains Mono',ui-monospace,monospace;color:var(--fg3);opacity:.4;user-select:none;pointer-events:none;text-align:right;min-width:38px}
+.code-status{height:24px;background:var(--bg);border-top:1px solid var(--border);padding:0 12px;display:flex;align-items:center;color:var(--fg3);font-size:10px;font-family:'JetBrains Mono',monospace;gap:8px}
+.code-status-dot{width:5px;height:5px;background:var(--fg3);display:inline-block;margin-right:3px}
+.code-status-dot.unsaved{background:var(--fg2)}
+.code-status-dot.synced{background:#10b981}
+[data-theme="light"] .code-status-dot.synced{background:#059669}
+
+/* Syntax tokens */
+.tk-keyword{color:#c792ea}
+.tk-string{color:#c3e88d}
+.tk-number{color:#f78c6c}
+.tk-comment{color:#546e7a;font-style:italic}
+.tk-type{color:#82aaff}
+[data-theme="light"] .tk-keyword{color:#7c3aed}
+[data-theme="light"] .tk-string{color:#087f5b}
+[data-theme="light"] .tk-number{color:#b35c00}
+[data-theme="light"] .tk-comment{color:#9e9e9e;font-style:italic}
+[data-theme="light"] .tk-type{color:#1565c0}
+
+/* Mobile-only month card container: hidden on desktop */
+.mob-months-wrap{display:none}
+
+/* ── Sidebar Nav Switcher ── */
+.side-nav-tabs{display:flex;gap:4px;padding:8px 10px 4px;border-bottom:1px solid var(--border)}
+.side-tab{flex:1;height:28px;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;color:var(--fg3);border:1px solid transparent;border-radius:var(--radius);cursor:pointer;transition:all .12s}
+.side-tab:hover{color:var(--fg);background:var(--bg3)}
+.side-tab.active{color:var(--fg);background:var(--bg4);border-color:var(--border2)}
+
+/* ── Calendar & Time Tracker ── */
+/* ── Calendar & Time Tracker (Full-Screen One-Page Dashboard) ── */
+.tracker-overlay{position:fixed;inset:0;background:var(--bg);z-index:900;display:none;flex-direction:column;overflow:hidden;padding:14px 24px 10px;box-sizing:border-box;color:var(--fg)}
+.tracker-header{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:12px;flex-shrink:0;gap:16px}
+.tracker-head-left{display:flex;align-items:center;gap:14px}
+.tracker-title{font-size:14px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--fg)}
+.tracker-nav{display:flex;align-items:center;gap:4px}
+.tracker-nav-btn{height:26px;padding:0 8px;background:var(--bg3);border:1px solid var(--border2);color:var(--fg);font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .12s}
+.tracker-nav-btn:hover{background:var(--bg4);border-color:var(--fg)}
+.tracker-nav-year{font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:0 6px;min-width:48px;text-align:center}
+
+/* Aesthetic Realtime Hero Clock */
+.tracker-clock-hero{text-align:center;display:flex;flex-direction:column;align-items:center}
+.tracker-clock-time{font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:800;letter-spacing:0.08em;color:var(--fg);line-height:1;text-shadow:0 0 16px rgba(255,255,255,.08)}
+[data-theme="light"] .tracker-clock-time{text-shadow:0 0 16px rgba(0,0,0,.08)}
+.tracker-clock-date{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.12em;color:var(--fg3);margin-top:2px}
+
+.tracker-head-right{display:flex;align-items:center;gap:12px}
+.tracker-quick-stats{display:flex;gap:12px}
+.t-stat-pill{display:flex;flex-direction:column;align-items:flex-end}
+.t-stat-num{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--fg)}
+.t-stat-label{font-size:8.5px;font-weight:700;letter-spacing:0.08em;color:var(--fg3)}
+.tracker-btn{height:28px;padding:0 12px;background:transparent;border:1px solid var(--border2);color:var(--fg);font-size:11px;font-weight:600;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:all .12s}
+.tracker-btn:hover{background:var(--bg3);border-color:var(--fg)}
+
+/* Main View: Grid + Hours Bar */
+.tracker-main-view{flex:1;display:flex;gap:14px;min-height:0;overflow:hidden}
+
+/* Left: Year Grid Panel */
+.tracker-grid-panel{flex:1;display:flex;flex-direction:column;background:var(--bg2);border:1px solid var(--border);padding:10px 12px;min-height:0;overflow:hidden}
+.tgrid-header-row{display:flex;align-items:center;gap:3px;padding-bottom:5px;border-bottom:1px solid var(--border);font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:var(--fg3);flex-shrink:0}
+.tgrid-corner{width:42px;text-align:left}
+.tgrid-cols-header{flex:1;display:grid;grid-template-columns:repeat(31, 1fr);gap:3px;text-align:center}
+.tgrid-end-corner{width:54px;text-align:right}
+
+.tgrid-months-body{flex:1;display:flex;flex-direction:column;justify-content:space-between;min-height:0;margin-top:4px;gap:2px}
+.tgrid-row{display:flex;align-items:center;gap:3px;flex:1;min-height:0}
+.tgrid-month-lbl{width:42px;font-size:10px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--fg);letter-spacing:0.04em;flex-shrink:0}
+.tgrid-row-days{flex:1;display:grid;grid-template-columns:repeat(31, 1fr);gap:3px;height:100%;align-items:stretch}
+
+.tgrid-cell{height:100%;border:1px solid var(--border);background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:9.5px;font-family:'JetBrains Mono',monospace;position:relative;cursor:pointer;user-select:none;transition:all .1s;border-radius:1px}
+.tgrid-cell:hover{border-color:var(--fg);background:var(--bg4);transform:scale(1.2);z-index:20}
+.tgrid-cell.past{background:transparent;border-color:var(--border);opacity:0.42;color:var(--fg3)}
+.tgrid-cell.past .cell-num{text-decoration:line-through;color:var(--fg3)}
+.tgrid-cell.past::after{content:'✕';position:absolute;font-size:8px;color:var(--fg3);pointer-events:none}
+.tgrid-cell.today{border:1.5px solid var(--fg);background:var(--fg) !important;color:var(--bg) !important;font-weight:800;z-index:5}
+.tgrid-cell.today .cell-num{color:var(--bg) !important;text-decoration:none !important}
+.tgrid-cell.future{background:var(--bg);border-color:var(--border);color:var(--fg2)}
+.tgrid-cell.empty{border:1px dashed transparent;background:transparent;cursor:default;pointer-events:none;opacity:0.1;color:transparent}
+.tgrid-row-stat{width:54px;font-size:9.5px;font-family:'JetBrains Mono',monospace;color:var(--fg3);text-align:right;flex-shrink:0}
+
+/* Right: Vertical 24-Hour Indicator */
+.tracker-hours-panel{width:148px;background:var(--bg2);border:1px solid var(--border);padding:10px;display:flex;flex-direction:column;min-height:0;flex-shrink:0}
+.thours-header{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:6px;border-bottom:1px solid var(--border);flex-shrink:0}
+.thours-title{font-size:9.5px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--fg)}
+.thours-badge{font-size:10.5px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--fg2)}
+.thours-meter-container{flex:1;display:flex;gap:6px;min-height:0;margin:6px 0}
+.thours-track{width:4px;background:var(--bg4);border-radius:2px;overflow:hidden;position:relative;flex-shrink:0;height:100%}
+.thours-track-fill{width:100%;background:var(--fg);transition:height .3s;position:absolute;top:0;left:0}
+.thours-segments{flex:1;display:flex;flex-direction:column;justify-content:space-between;height:100%;min-height:0;gap:2px}
+.thour-seg{flex:1;display:flex;align-items:center;justify-content:space-between;padding:0 5px;font-size:8.5px;font-family:'JetBrains Mono',monospace;border:1px solid var(--border);background:var(--bg3);border-radius:1px;user-select:none;transition:all .1s}
+.thour-seg.past{background:transparent;border-color:var(--border);opacity:0.4;color:var(--fg3)}
+.thour-seg.past .thour-status{text-decoration:line-through}
+.thour-seg.current{border:1.5px solid var(--fg);background:var(--bg4);color:var(--fg);font-weight:800;box-shadow:0 0 6px rgba(255,255,255,.1)}
+.thour-seg.future{background:var(--bg);border-color:var(--border);color:var(--fg3)}
+.thours-footer{padding-top:4px;border-top:1px solid var(--border);text-align:center;flex-shrink:0}
+.thours-progress-text{font-size:9.5px;font-family:'JetBrains Mono',monospace;color:var(--fg3);font-weight:600}
+
+/* Bottom Inspector */
+.tracker-inspector{height:30px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:10.5px;font-family:'JetBrains Mono',monospace;gap:12px;flex-shrink:0;margin-top:8px;padding-top:4px}
+.inspector-date{font-weight:700;color:var(--fg)}
+.inspector-details{color:var(--fg2);display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.inspector-badge{padding:2px 5px;border:1px solid var(--border2);font-size:9.5px}
+
+/* ── Modals ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;place-items:center;padding:16px;z-index:100}
+.modal-bg.open{display:grid}
+.modal{width:min(400px,100%);background:var(--bg2);border:1px solid var(--border2);padding:22px}
+.modal h2{font-size:14px;font-weight:700;margin-bottom:18px;letter-spacing:0.01em}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--fg3);margin-bottom:5px}
+.field input,.field select,.field textarea{width:100%;height:32px;background:transparent;border:1px solid var(--border);padding:0 8px;color:var(--fg);outline:none;transition:border-color .12s;font-size:12px}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--fg3)}
+.color-row{display:flex;gap:6px;flex-wrap:wrap}
+.color-swatch{width:22px;height:22px;border:2px solid transparent;cursor:pointer;transition:transform .1s,border-color .1s}
+.color-swatch:hover,.color-swatch.selected{transform:scale(1.2);border-color:var(--fg)}
+.modal-actions{display:flex;justify-content:flex-end;gap:6px;margin-top:18px}
+.modal-btn{height:32px;padding:0 14px;font-size:12px;font-weight:600;transition:opacity .12s;border:1px solid var(--border)}
+.modal-btn.cancel{background:transparent;color:var(--fg2)}
+.modal-btn.cancel:hover{color:var(--fg);border-color:var(--border2)}
+.modal-btn.submit{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.modal-btn.submit:hover{opacity:.82}
+
+/* Context menu */
+.ctx-menu{position:fixed;background:var(--bg2);border:1px solid var(--border2);padding:4px;z-index:200;min-width:140px;display:none}
+.ctx-menu.open{display:block}
+.ctx-item{display:flex;align-items:center;gap:8px;padding:6px 10px;font-size:12px;font-weight:500;cursor:pointer;color:var(--fg2);transition:background .1s,color .1s;border:none;background:none;width:100%;text-align:left}
+.ctx-item:hover{background:var(--bg3);color:var(--fg)}
+.ctx-sep{height:1px;background:var(--border);margin:3px 0}
+
+/* Toast */
+.toast{position:fixed;right:18px;bottom:18px;background:var(--fg);border:1px solid var(--border2);padding:9px 14px;font-size:11px;font-weight:600;color:var(--bg);opacity:0;transform:translateY(6px);transition:.16s;pointer-events:none;display:flex;align-items:center;gap:8px;z-index:300}
+.toast.show{opacity:1;transform:none}
+.toast-dot{display:none}
+
+/* ═══════════════════════════════════════
+   MOBILE  (≤680px) — completely redesigned
+   ═══════════════════════════════════════ */
+.mobile-menu{display:none}
+@media(max-width:680px){
+  .app{grid-template-columns:1fr}
+  .sidebar{position:fixed;inset:0 auto 0 0;width:260px;z-index:50;transform:translateX(-100%);transition:transform .18s}
+  .sidebar.open{transform:none}
+  .mobile-menu{display:flex}
+  .main{height:100vh}
+  .content{padding:20px 16px 60px}
+
+  /* ── Tracker: full-page scrollable shell ── */
+  .tracker-overlay{
+    padding:0;
+    overflow-y:auto;
+    overflow-x:hidden;
+    flex-direction:column;
+  }
+
+  /* Sticky header bar */
+  .tracker-header{
+    position:sticky;
+    top:0;
+    z-index:10;
+    background:var(--bg);
+    border-bottom:1px solid var(--border);
+    padding:10px 14px 8px;
+    margin-bottom:0;
+    flex-direction:column;
+    align-items:stretch;
+    gap:6px;
+  }
+  .tracker-head-left{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+  }
+  .tracker-title{font-size:12px;letter-spacing:0.12em}
+  .tracker-nav{gap:3px}
+  .tracker-nav-btn{height:30px;padding:0 10px;font-size:12px}
+  .tracker-nav-year{font-size:14px}
+
+  /* Clock: centered under title row */
+  .tracker-clock-hero{
+    text-align:center;
+    padding:4px 0 2px;
+    border-top:1px solid var(--border);
+  }
+  .tracker-clock-time{font-size:22px;letter-spacing:0.06em}
+  .tracker-clock-date{font-size:9px;letter-spacing:0.1em;margin-top:1px}
+
+  /* Hide right-side stats & fullscreen btn on mobile */
+  .tracker-head-right{display:none}
+
+  /* ── Main view: single column ── */
+  .tracker-main-view{
+    flex-direction:column;
+    overflow:visible;
+    min-height:unset;
+    gap:0;
+    padding:12px 10px 20px;
+  }
+
+  /* ── Desktop year grid: HIDDEN on mobile ── */
+  .tracker-grid-panel{display:none}
+
+  /* ── Mobile month cards (injected by JS) ── */
+  .mob-months-wrap{
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+    width:100%;
+  }
+  .mob-month-card{
+    background:var(--bg2);
+    border:1px solid var(--border);
+    border-radius:2px;
+    overflow:hidden;
+  }
+  .mob-month-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:8px 12px 6px;
+    border-bottom:1px solid var(--border);
+  }
+  .mob-month-name{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    font-weight:800;
+    letter-spacing:0.1em;
+    color:var(--fg);
+  }
+  .mob-month-stat{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;
+    color:var(--fg3);
+  }
+
+  /* 7-col week day-name header */
+  .mob-dow-row{
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    padding:5px 8px 3px;
+    gap:3px;
+  }
+  .mob-dow-lbl{
+    text-align:center;
+    font-size:8px;
+    font-weight:700;
+    letter-spacing:0.08em;
+    color:var(--fg3);
+    font-family:'JetBrains Mono',monospace;
+  }
+
+  /* Calendar day grid */
+  .mob-days-grid{
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    gap:3px;
+    padding:0 8px 10px;
+  }
+  .mob-day{
+    aspect-ratio:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    font-weight:500;
+    border:1px solid var(--border);
+    background:var(--bg3);
+    border-radius:2px;
+    position:relative;
+    cursor:pointer;
+    transition:background .1s;
+  }
+  .mob-day.empty{border:none;background:transparent;pointer-events:none}
+  .mob-day.past{
+    background:transparent;
+    border-color:var(--border);
+    color:var(--fg3);
+    opacity:0.5;
+    text-decoration:line-through;
+  }
+  .mob-day.today{
+    background:var(--fg) !important;
+    color:var(--bg) !important;
+    font-weight:800;
+    border-color:var(--fg);
+  }
+  .mob-day.future{
+    background:var(--bg);
+    color:var(--fg2);
+    border-color:var(--border);
+  }
+
+  /* ── Hours panel: horizontal bar on mobile ── */
+  .tracker-hours-panel{
+    width:100%;
+    height:auto;
+    margin-top:14px;
+    border:1px solid var(--border);
+    background:var(--bg2);
+    padding:10px 12px;
+  }
+  .thours-header{padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:8px}
+  .thours-title{font-size:10px}
+  .thours-badge{font-size:12px}
+  /* vertical track: hidden on mobile */
+  .thours-track{display:none}
+  .thours-meter-container{flex-direction:column;height:auto;margin:0}
+  .thours-segments{
+    display:grid;
+    grid-template-columns:repeat(6,1fr);
+    gap:4px;
+    height:auto;
+    flex:unset;
+  }
+  .thour-seg{
+    flex:unset;
+    padding:6px 4px;
+    font-size:9px;
+    flex-direction:column;
+    align-items:center;
+    gap:2px;
+    border-radius:2px;
+  }
+  .thour-seg .thour-lbl{font-size:8px;font-weight:700}
+  .thour-seg .thour-status{font-size:8px;color:var(--fg3)}
+  .thour-seg.current .thour-status{color:var(--fg)}
+  .thours-footer{padding-top:8px;border-top:1px solid var(--border);margin-top:8px}
+
+  /* Inspector: compact 2-line on mobile */
+  .tracker-inspector{
+    flex-wrap:wrap;
+    height:auto;
+    padding:10px 10px;
+    margin-top:0;
+    gap:5px;
+    font-size:10px;
+    border-top:1px solid var(--border);
+  }
+  .inspector-details{flex-wrap:wrap;gap:6px}
+  #inspectorQuote{display:none}
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="brand-text">CODEBOOK</span>
+      <span class="brand-count" id="totalCount">0 problems</span>
+    </div>
+    <div class="side-nav-tabs">
+      <button class="side-tab active" id="tabCodebook" title="Codebook Problems">Codebook</button>
+      <button class="side-tab" id="tabTracker" title="Calendar & Time Tracker">Tracker</button>
+    </div>
+    <div class="side-top">
+      <button class="btn-new-folder" id="newFolderBtn">+ New Folder</button>
+    </div>
+    <div class="search-wrap">
+      <input class="search" id="search" placeholder="Search problems..." autocomplete="off">
+    </div>
+    <div class="tree" id="tree"></div>
+    <div class="side-foot">
+      <button class="foot-btn" id="syncBtn" title="Firebase Cloud Sync">Cloud Sync</button>
+      <button class="foot-btn" id="exportBtn">Export</button>
+      <label class="file-label">Import<input type="file" id="importInput" accept="application/json"></label>
+      <button class="foot-btn" id="themeBtn">Theme</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <header class="topbar">
+      <button class="icon-btn mobile-menu" id="menuBtn">Menu</button>
+      <div class="breadcrumb" id="breadcrumb">
+        <span class="breadcrumb-item active">Codebook</span>
+      </div>
+      <div class="topbar-actions">
+        <button class="icon-btn" id="openTrackerBtn" title="Calendar & Time Tracker (T)">Tracker</button>
+        <button class="icon-btn save-btn" id="saveBtn">Save</button>
+      </div>
+    </header>
+    <div class="editor-area" id="editorArea">
+      <div class="empty-state" id="emptyState">
+        <div class="empty-title">No problem selected</div>
+        <div class="empty-sub">Create a folder and add problems to start building your codebook.</div>
+        <button class="empty-btn" id="emptyNewFolderBtn">+ Create folder</button>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Tracker Overlay -->
+<!-- Tracker Overlay (One-Page Full-Screen Year & Time Dashboard) -->
+<div class="tracker-overlay" id="trackerOverlay">
+  <header class="tracker-header">
+    <div class="tracker-head-left">
+      <div class="tracker-title">Year Tracker</div>
+      <div class="tracker-nav">
+        <button class="tracker-nav-btn" id="trackerPrevYear" title="Previous Year">&lt;</button>
+        <span class="tracker-nav-year" id="trackerYearLabel">2026</span>
+        <button class="tracker-nav-btn" id="trackerNextYear" title="Next Year">&gt;</button>
+        <button class="tracker-nav-btn" id="trackerTodayBtn" title="Current Year">Today</button>
+      </div>
+    </div>
+
+    <!-- Realtime Aesthetic Clock -->
+    <div class="tracker-clock-hero">
+      <div class="tracker-clock-time" id="trackerClockTime">00:00:00</div>
+      <div class="tracker-clock-date" id="trackerClockDate">--</div>
+    </div>
+
+    <div class="tracker-head-right">
+      <div class="tracker-quick-stats">
+        <div class="t-stat-pill">
+          <span class="t-stat-num" id="quickYearPct">0%</span>
+          <span class="t-stat-label">YEAR PASSED</span>
+        </div>
+        <div class="t-stat-pill">
+          <span class="t-stat-num" id="quickDaysLeft">0</span>
+          <span class="t-stat-label">DAYS LEFT</span>
+        </div>
+      </div>
+      <button class="tracker-btn" id="trackerFullscreenBtn" title="Toggle Fullscreen">Fullscreen</button>
+      <button class="tracker-btn" id="closeTrackerBtn" title="Close Tracker (Esc)">Close</button>
+    </div>
+  </header>
+
+  <!-- Main View: Year Grid + Vertical Hours Meter -->
+  <div class="tracker-main-view">
+    <!-- Left: 12-Month Year Grid (desktop) -->
+    <div class="tracker-grid-panel">
+      <div class="tgrid-header-row">
+        <span class="tgrid-corner">MONTH</span>
+        <div class="tgrid-cols-header" id="tgridColsHeader"></div>
+        <span class="tgrid-end-corner">PASSED</span>
+      </div>
+      <div class="tgrid-months-body" id="tgridMonthsBody"></div>
+    </div>
+
+    <!-- Mobile: Month cards (hidden on desktop via CSS) -->
+    <div class="mob-months-wrap" id="mobMonthsWrap"></div>
+
+    <!-- Right: Vertical 24-Hour Indicator -->
+    <div class="tracker-hours-panel">
+      <div class="thours-header">
+        <span class="thours-title">Today's Hours</span>
+        <span class="thours-badge" id="thoursBadge">0.0 / 24h</span>
+      </div>
+      <div class="thours-meter-container">
+        <div class="thours-track">
+          <div class="thours-track-fill" id="thoursTrackFill" style="height:0%"></div>
+        </div>
+        <div class="thours-segments" id="thoursSegments"></div>
+      </div>
+      <div class="thours-footer">
+        <div class="thours-progress-text" id="thoursProgressText">0% of today</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Inspector -->
+  <footer class="tracker-inspector" id="trackerInspector">
+    <div class="inspector-date" id="inspectorDate">Select or hover any day to inspect</div>
+    <div class="inspector-details" id="inspectorDetails">
+      <span class="inspector-badge" id="inspectorStatus">Ready</span>
+      <span id="inspectorHours">-- / 24 hrs</span>
+      <span id="inspectorDayOfYear">Day -- of 365</span>
+      <span id="inspectorQuote" style="color:var(--fg3)">LOST TIME IS NEVER FOUND AGAIN.</span>
+    </div>
+  </footer>
+</div>
+
+<!-- Folder Modal -->
+<div class="modal-bg" id="folderModal">
+  <form class="modal" id="folderForm">
+    <h2 id="folderModalTitle">New Folder</h2>
+    <div class="field">
+      <label>Folder Name</label>
+      <input id="folderNameInput" required placeholder="e.g. Dynamic Programming" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>Color</label>
+      <div class="color-row" id="colorRow"></div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="modal-btn cancel" id="cancelFolderBtn">Cancel</button>
+      <button type="submit" class="modal-btn submit">Create Folder</button>
+    </div>
+  </form>
+</div>
+
+<!-- Problem Modal -->
+<div class="modal-bg" id="problemModal">
+  <form class="modal" id="problemForm">
+    <h2>Add Problem</h2>
+    <div class="field">
+      <label>Problem Title</label>
+      <input id="probTitleInput" required placeholder="e.g. Two Sum" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>Difficulty</label>
+      <select id="probDiffInput">
+        <option value="Easy">Easy</option>
+        <option value="Medium" selected>Medium</option>
+        <option value="Hard">Hard</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Problem Link (optional)</label>
+      <input id="probUrlInput" type="url" placeholder="https://leetcode.com/problems/...">
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="modal-btn cancel" id="cancelProbBtn">Cancel</button>
+      <button type="submit" class="modal-btn submit">Add Problem</button>
+    </div>
+  </form>
+</div>
+
+<!-- Context Menu -->
+<div class="ctx-menu" id="ctxMenu">
+  <button class="ctx-item" id="ctxRename">Rename</button>
+  <button class="ctx-item" id="ctxAddProblem">Add problem</button>
+  <div class="ctx-sep"></div>
+  <button class="ctx-item danger" id="ctxDelete">Delete folder</button>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"><span class="toast-dot"></span><span id="toastText">Saved</span></div>
+
+<script>
+// ─── Palette ───────────────────────────────────────────────────────────────
+const COLORS = ['#7c5cfc','#ef4444','#f59e0b','#10b981','#3b82f6','#ec4899','#8b5cf6','#06b6d4','#f97316','#84cc16'];
+
+// ─── Data ──────────────────────────────────────────────────────────────────
+const SAMPLE = {
+  theme: 'dark',
+  folders: [
+    {
+      id: uid(), name: 'Arrays', color: '#3b82f6', open: true,
+      problems: [
+        {
+          id: uid(), title: 'Two Sum', difficulty: 'Easy', problemUrl: 'https://leetcode.com/problems/two-sum/',
+          notes: 'Return the indices of two numbers that add up to the target.',
+          approaches: [
+            { id: uid(), name: 'Brute Force', language: 'cpp', complexity: 'O(n²) time · O(1) space',
+              code: 'vector<int> twoSum(vector<int>& nums, int target) {\n  for (int i = 0; i < nums.size(); i++) {\n    for (int j = i + 1; j < nums.size(); j++) {\n      if (nums[i] + nums[j] == target) return {i, j};\n    }\n  }\n  return {};\n}' },
+            { id: uid(), name: 'HashMap (Optimal)', language: 'cpp', complexity: 'O(n) time · O(n) space',
+              code: 'vector<int> twoSum(vector<int>& nums, int target) {\n  unordered_map<int,int> seen;\n  for (int i = 0; i < nums.size(); i++) {\n    int need = target - nums[i];\n    if (seen.count(need)) return {seen[need], i};\n    seen[nums[i]] = i;\n  }\n  return {};\n}' }
+          ]
+        },
+        {
+          id: uid(), title: 'Best Time to Buy and Sell Stock', difficulty: 'Easy', problemUrl: 'https://leetcode.com/problems/best-time-to-buy-and-sell-stock/',
+          notes: 'Find the max profit from a single buy/sell transaction.',
+          approaches: [
+            { id: uid(), name: 'Sliding Window', language: 'cpp', complexity: 'O(n) time · O(1) space',
+              code: 'int maxProfit(vector<int>& prices) {\n  int minP = INT_MAX, maxP = 0;\n  for (int p : prices) {\n    minP = min(minP, p);\n    maxP = max(maxP, p - minP);\n  }\n  return maxP;\n}' }
+          ]
+        }
+      ]
+    },
+    {
+      id: uid(), name: 'Strings', color: '#10b981', open: false,
+      problems: [
+        {
+          id: uid(), title: 'Valid Parentheses', difficulty: 'Easy', problemUrl: 'https://leetcode.com/problems/valid-parentheses/',
+          notes: 'Check every opening bracket is properly closed.',
+          approaches: [
+            { id: uid(), name: 'Stack', language: 'cpp', complexity: 'O(n) time · O(n) space',
+              code: 'bool isValid(string s) {\n  stack<char> st;\n  for (char c : s) {\n    if (c=="("||c=="["||c=="{") st.push(c);\n    else {\n      if (st.empty()) return false;\n      char t = st.top(); st.pop();\n      if ((c==")"&&t!="(")||(c=="]"&&t!="[")||(c=="}"&&t!="{")) return false;\n    }\n  }\n  return st.empty();\n}' }
+          ]
+        }
+      ]
+    },
+    {
+      id: uid(), name: 'Dynamic Programming', color: '#f59e0b', open: false,
+      problems: [
+        {
+          id: uid(), title: 'Climbing Stairs', difficulty: 'Easy', problemUrl: 'https://leetcode.com/problems/climbing-stairs/',
+          notes: 'Count distinct ways to reach the nth step (1 or 2 steps at a time).',
+          approaches: [
+            { id: uid(), name: 'DP (Fibonacci)', language: 'cpp', complexity: 'O(n) time · O(1) space',
+              code: 'int climbStairs(int n) {\n  if (n <= 2) return n;\n  int a = 1, b = 2;\n  for (int i = 3; i <= n; i++) {\n    int c = a + b;\n    a = b; b = c;\n  }\n  return b;\n}' }
+          ]
+        }
+      ]
+    }
+  ]
+};
+
+function uid() { return crypto.randomUUID(); }
+
+let db = load();
+let activeFolder = null;   // folder id
+let activeProb = null;     // problem id
+let activeApp = null;      // approach id
+let dirty = false;
+let searchQ = '';
+let ctxFolderId = null;
+
+// ─── Firebase Setup ────────────────────────────────────────────────────────
+const FB_CONFIG = {
+  apiKey: "AIzaSyAhzn0dLNXPNT0q1-YwXu9pE0WDjLxbzg8",
+  authDomain: "codebook-9353f.firebaseapp.com",
+  projectId: "codebook-9353f",
+  storageBucket: "codebook-9353f.firebasestorage.app",
+  messagingSenderId: "20836249073",
+  appId: "1:20836249073:web:9193570ef256de7e45a850"
+};
+firebase.initializeApp(FB_CONFIG);
+const fbDb = firebase.firestore();
+const FB_DOC = fbDb.collection('codebook').doc('data');
+let fbSynced = false;
+let fbSaving = false;
+
+async function fbLoad() {
+  try {
+    const snap = await FB_DOC.get();
+    if (snap.exists && snap.data().payload) {
+      const parsed = JSON.parse(snap.data().payload);
+      if (parsed && parsed.folders) return parsed;
+    }
+  } catch(e) { console.warn('Firebase load error:', e); }
+  return null;
+}
+
+async function fbSave(jsonStr) {
+  if (fbSaving) return;
+  fbSaving = true;
+  try {
+    await FB_DOC.set({ payload: jsonStr, ts: Date.now() });
+    fbSynced = true;
+    updateSyncUI();
+  } catch(e) {
+    fbSynced = false;
+    console.warn('Firebase save error:', e);
+    updateSyncUI();
+  }
+  fbSaving = false;
+}
+
+
+
+function load() {
+  try {
+    const v = JSON.parse(localStorage.getItem('codebook-v2'));
+    if (v?.folders) return v;
+  } catch(e) {}
+  return JSON.parse(JSON.stringify(SAMPLE));
+}
+
+async function persist(showToast = true) {
+  const jsonStr = JSON.stringify(db);
+  // 1. Always cache locally for instant startup
+  localStorage.setItem('codebook-v2', jsonStr);
+  // 2. Save to Firebase (primary online store)
+  await fbSave(jsonStr);
+  if (showToast) toast(fbSynced ? 'Saved to Cloud' : 'Saved locally (cloud offline)');
+  dirty = false;
+  updateStatus();
+}
+
+function changed() {
+  dirty = true;
+  updateStatus();
+  clearTimeout(window._autoSave);
+  window._autoSave = setTimeout(() => persist(false), 600);
+}
+
+function updateStatus() {
+  const s = document.querySelector('#codeStatus');
+  if (!s) return;
+  const dot = s.querySelector('.code-status-dot');
+  const txt = s.querySelector('#statusTxt');
+  if (dot) dot.className = 'code-status-dot' + (dirty ? ' unsaved' : (fbSynced ? ' synced' : ''));
+  if (txt) {
+    if (dirty) txt.textContent = 'Unsaved changes';
+    else if (fbSynced) txt.textContent = 'Synced to Firebase Cloud';
+    else txt.textContent = 'Saved locally (connecting to cloud...)';
+  }
+}
+
+function updateSyncUI() {
+  const syncBtn = document.querySelector('#syncBtn');
+  if (!syncBtn) return;
+  if (fbSynced) {
+    syncBtn.textContent = 'Cloud Synced';
+    syncBtn.title = 'Auto-saving to Firebase Cloud';
+    syncBtn.style.color = 'var(--bg)';
+    syncBtn.style.backgroundColor = 'var(--fg)';
+  } else {
+    syncBtn.textContent = 'Cloud Sync';
+    syncBtn.title = 'Connecting to Firebase...';
+    syncBtn.style.color = 'var(--fg)';
+    syncBtn.style.backgroundColor = 'transparent';
+  }
+  updateStatus();
+}
+
+// ─── Getters ───────────────────────────────────────────────────────────────
+function getFolder(id) { return db.folders.find(f => f.id === id); }
+function getProb(fId, pId) { return getFolder(fId)?.problems.find(p => p.id === pId); }
+function getApp(fId, pId, aId) { return getProb(fId, pId)?.approaches.find(a => a.id === aId); }
+function totalProblems() { return db.folders.reduce((s, f) => s + f.problems.length, 0); }
+
+// ─── Render tree ───────────────────────────────────────────────────────────
+function renderTree() {
+  const tree = document.querySelector('#tree');
+  const q = searchQ.toLowerCase();
+
+  document.querySelector('#totalCount').textContent = `${totalProblems()} problem${totalProblems()===1?'':'s'}`;
+
+  const rows = db.folders.map(folder => {
+    const probs = folder.problems.filter(p => !q || (p.title + ' ' + p.notes).toLowerCase().includes(q));
+    if (q && probs.length === 0) return '';
+
+    const isOpen = folder.open || !!q;
+
+    return `
+      <div class="folder-wrap" data-fid="${folder.id}">
+        <div class="folder-row" data-fid="${folder.id}" id="fr-${folder.id}">
+          <span class="folder-chevron ${isOpen ? 'open' : ''}" id="chev-${folder.id}">&#9656;</span>
+          <span class="folder-dot" style="background:${folder.color}"></span>
+          <span class="folder-name" id="fname-${folder.id}">${esc(folder.name)}</span>
+          <span class="folder-count">${folder.problems.length}</span>
+          <button class="folder-menu-btn" data-fid="${folder.id}" id="fmenu-${folder.id}" title="Options">...</button>
+        </div>
+        <div class="problems-list ${isOpen ? 'open' : ''}" id="plist-${folder.id}">
+          ${probs.map(p => `
+            <div class="problem-row ${p.id === activeProb ? 'active' : ''}" data-fid="${folder.id}" data-pid="${p.id}">
+              <span class="problem-title">${esc(p.title)}</span>
+              <span class="diff-badge diff-${(p.difficulty||'medium').toLowerCase()}">${p.difficulty||'Medium'}</span>
+            </div>
+          `).join('')}
+          <button class="btn-add-problem" data-fid="${folder.id}">+ Add problem</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  tree.innerHTML = rows || `<div style="padding:20px 12px;color:var(--fg3);font-size:12px">No results found.</div>`;
+  bindTree();
+}
+
+function bindTree() {
+  // Folder row click → toggle
+  document.querySelectorAll('.folder-row').forEach(el => {
+    el.addEventListener('click', e => {
+      if (e.target.closest('.folder-menu-btn')) return;
+      const fid = el.dataset.fid;
+      const f = getFolder(fid);
+      if (!f) return;
+      f.open = !f.open;
+      const plist = document.querySelector(`#plist-${fid}`);
+      const chev = document.querySelector(`#chev-${fid}`);
+      if (plist) plist.classList.toggle('open', f.open);
+      if (chev) chev.classList.toggle('open', f.open);
+    });
+  });
+
+  // Problem row click
+  document.querySelectorAll('.problem-row').forEach(el => {
+    el.addEventListener('click', () => {
+      activeFolder = el.dataset.fid;
+      activeProb = el.dataset.pid;
+      const prob = getProb(activeFolder, activeProb);
+      activeApp = prob?.approaches[0]?.id || null;
+      renderEditor();
+      renderTree();
+      closeSidebar();
+    });
+  });
+
+  // Folder menu btn
+  document.querySelectorAll('.folder-menu-btn').forEach(el => {
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      ctxFolderId = el.dataset.fid;
+      openCtxMenu(e.clientX, e.clientY);
+    });
+  });
+
+  // Add problem btn
+  document.querySelectorAll('.btn-add-problem').forEach(el => {
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      openProblemModal(el.dataset.fid);
+    });
+  });
+}
+
+// ─── Render editor ─────────────────────────────────────────────────────────
+function renderEditor() {
+  const area = document.querySelector('#editorArea');
+  const prob = getProb(activeFolder, activeProb);
+  const folder = getFolder(activeFolder);
+
+  if (!prob) {
+    area.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-title">No problem selected</div>
+        <div class="empty-sub">Pick a problem from the sidebar or create a new one.</div>
+        <button class="empty-btn" onclick="openFolderModal()">+ Create a folder</button>
+      </div>`;
+    document.querySelector('#breadcrumb').innerHTML = `<span class="breadcrumb-item active">Codebook</span>`;
+    return;
+  }
+
+  // Breadcrumb
+  document.querySelector('#breadcrumb').innerHTML = `
+    <span class="breadcrumb-item">${esc(folder.name)}</span>
+    <span class="breadcrumb-sep">›</span>
+    <span class="breadcrumb-item active">${esc(prob.title)}</span>
+  `;
+
+  if (!activeApp && prob.approaches.length) activeApp = prob.approaches[0].id;
+  const app = getApp(activeFolder, activeProb, activeApp);
+
+  let tc = '', sc = '';
+  if (app && app.complexity) {
+    const m = app.complexity.match(/^(.*?)\s*time\s*·\s*(.*?)\s*space$/);
+    if (m) { tc = m[1]; sc = m[2]; }
+    else { tc = app.complexity; }
+  }
+
+  area.innerHTML = `
+    <div class="content">
+      <div class="title-row">
+        <input class="title-input" id="titleInput" value="${esc(prob.title)}" placeholder="Problem title" aria-label="Problem title">
+        <div class="title-actions">
+          <button class="danger-btn" id="deleteProb">Delete</button>
+        </div>
+      </div>
+
+      <div class="meta-row">
+        <div class="diff-group" id="diffInput">
+          <button class="diff-btn ${prob.difficulty==='Easy'?'active':''}" data-val="Easy">Easy</button>
+          <button class="diff-btn ${prob.difficulty==='Medium'?'active':''}" data-val="Medium">Medium</button>
+          <button class="diff-btn ${prob.difficulty==='Hard'?'active':''}" data-val="Hard">Hard</button>
+        </div>
+        <input class="url-input" id="urlInput" type="url" value="${esc(prob.problemUrl||'')}" placeholder="Problem URL...">
+        ${prob.problemUrl ? `<a class="open-link" href="${esc(prob.problemUrl)}" target="_blank" rel="noopener">Open</a>` : ''}
+      </div>
+
+      <div style="margin-bottom:24px">
+        <div class="notes-label">Notes</div>
+        <textarea class="notes-input" id="notesInput" placeholder="Describe the problem, edge cases, observations…" rows="2">${esc(prob.notes||'')}</textarea>
+      </div>
+
+      <div class="approach-section">
+        <div class="approach-tabs-row">
+          <div id="tabsContainer" style="display:flex;gap:2px">
+            ${prob.approaches.map(a => `
+              <button class="tab ${a.id===activeApp?'active':''}" data-aid="${a.id}">${esc(a.name)}</button>
+            `).join('')}
+          </div>
+          <button class="add-tab-btn" id="addApproachBtn" title="Add approach">+</button>
+        </div>
+
+        ${app ? `
+          <div class="approach-tools">
+            <div class="tool-field">
+              <span class="tool-label">Approach name</span>
+              <input class="tool-input" id="appName" value="${esc(app.name)}">
+            </div>
+            <div class="tool-field">
+              <span class="tool-label">Time</span>
+              <select class="tool-input complexity" id="appTime" style="width:105px">
+                <option value="" disabled ${!tc?'selected':''} hidden>Time...</option>
+                <option value="O(1)" ${tc==='O(1)'?'selected':''}>O(1)</option>
+                <option value="O(log(log n))" ${tc==='O(log(log n))'?'selected':''}>O(log(log n))</option>
+                <option value="O(log n)" ${tc==='O(log n)'?'selected':''}>O(log n)</option>
+                <option value="O(√n)" ${tc==='O(√n)'?'selected':''}>O(√n)</option>
+                <option value="O(n)" ${tc==='O(n)'?'selected':''}>O(n)</option>
+                <option value="O(n log n)" ${tc==='O(n log n)'?'selected':''}>O(n log n)</option>
+                <option value="O(n√n)" ${tc==='O(n√n)'?'selected':''}>O(n√n)</option>
+                <option value="O(n²)" ${tc==='O(n²)'?'selected':''}>O(n²)</option>
+                <option value="O(n² log n)" ${tc==='O(n² log n)'?'selected':''}>O(n² log n)</option>
+                <option value="O(n³)" ${tc==='O(n³)'?'selected':''}>O(n³)</option>
+                <option value="O(2^n)" ${tc==='O(2^n)'?'selected':''}>O(2^n)</option>
+                <option value="O(n · 2^n)" ${tc==='O(n · 2^n)'?'selected':''}>O(n · 2^n)</option>
+                <option value="O(n!)" ${tc==='O(n!)'?'selected':''}>O(n!)</option>
+                ${tc && !['O(1)', 'O(log(log n))', 'O(log n)', 'O(√n)', 'O(n)', 'O(n log n)', 'O(n√n)', 'O(n²)', 'O(n² log n)', 'O(n³)', 'O(2^n)', 'O(n · 2^n)', 'O(n!)'].includes(tc) ? `<option value="${esc(tc)}" selected>${esc(tc)}</option>` : ''}
+              </select>
+            </div>
+            <div class="tool-field">
+              <span class="tool-label">Space</span>
+              <select class="tool-input complexity" id="appSpace" style="width:105px">
+                <option value="" disabled ${!sc?'selected':''} hidden>Space...</option>
+                <option value="O(1)" ${sc==='O(1)'?'selected':''}>O(1)</option>
+                <option value="O(log n)" ${sc==='O(log n)'?'selected':''}>O(log n)</option>
+                <option value="O(√n)" ${sc==='O(√n)'?'selected':''}>O(√n)</option>
+                <option value="O(n)" ${sc==='O(n)'?'selected':''}>O(n)</option>
+                <option value="O(n log n)" ${sc==='O(n log n)'?'selected':''}>O(n log n)</option>
+                <option value="O(n√n)" ${sc==='O(n√n)'?'selected':''}>O(n√n)</option>
+                <option value="O(n²)" ${sc==='O(n²)'?'selected':''}>O(n²)</option>
+                <option value="O(n³)" ${sc==='O(n³)'?'selected':''}>O(n³)</option>
+                <option value="O(2^n)" ${sc==='O(2^n)'?'selected':''}>O(2^n)</option>
+                ${sc && !['O(1)', 'O(log n)', 'O(√n)', 'O(n)', 'O(n log n)', 'O(n√n)', 'O(n²)', 'O(n³)', 'O(2^n)'].includes(sc) ? `<option value="${esc(sc)}" selected>${esc(sc)}</option>` : ''}
+              </select>
+            </div>
+            <button class="del-approach" id="delApproachBtn">× Delete approach</button>
+          </div>
+          <div class="code-shell">
+            <div class="code-bar">
+              <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+              <select class="lang-select" id="langSelect">
+                <option ${app.language==='cpp'?'selected':''} value="cpp">C++</option>
+                <option ${app.language==='python'?'selected':''} value="python">Python</option>
+                <option ${app.language==='java'?'selected':''} value="java">Java</option>
+                <option ${app.language==='javascript'?'selected':''} value="javascript">JavaScript</option>
+                <option ${app.language==='go'?'selected':''} value="go">Go</option>
+                <option ${app.language==='rust'?'selected':''} value="rust">Rust</option>
+              </select>
+              <span class="line-count" id="lineCount">${app.code.split('\n').length} lines</span>
+            </div>
+            <div class="code-frame" id="codeFrame">
+              <div class="code-lines" id="codeLines"></div>
+              <pre class="code-highlight" id="codeHighlight" aria-hidden="true"></pre>
+              <textarea class="code-ta" id="codeTA" spellcheck="false" wrap="off">${esc(app.code)}</textarea>
+            </div>
+            <div class="code-status" id="codeStatus">
+              <span class="code-status-dot"></span>
+              <span id="statusTxt">Saved locally</span>
+              <span style="margin-left:auto;opacity:.5">${app.language} · ${app.complexity||''}</span>
+            </div>
+          </div>
+        ` : `<div style="padding:32px 0;color:var(--fg3);font-size:13px">No approach yet. Click + to add one.</div>`}
+      </div>
+    </div>
+  `;
+
+  bindEditor(prob, app);
+}
+
+function bindEditor(prob, app) {
+  const bind = (id, setter) => {
+    const el = document.querySelector(id);
+    if (!el) return;
+    el.addEventListener('input', () => { setter(el.value); changed(); });
+  };
+
+  bind('#titleInput', v => {
+    prob.title = v;
+    document.querySelector('#breadcrumb .breadcrumb-item.active').textContent = v;
+    renderTree();
+  });
+  document.querySelectorAll('#diffInput .diff-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      prob.difficulty = btn.dataset.val;
+      changed();
+      renderTree();
+      renderEditor();
+    });
+  });
+  bind('#urlInput', v => prob.problemUrl = v);
+  bind('#notesInput', v => prob.notes = v);
+
+  document.querySelector('#deleteProb').addEventListener('click', () => {
+    if (!confirm(`Delete "${prob.title}"?`)) return;
+    const folder = getFolder(activeFolder);
+    folder.problems = folder.problems.filter(p => p.id !== prob.id);
+    activeProb = folder.problems[0]?.id || null;
+    activeApp = getProb(activeFolder, activeProb)?.approaches[0]?.id || null;
+    persist(false);
+    renderTree();
+    renderEditor();
+  });
+
+  // Tabs
+  document.querySelectorAll('[data-aid]').forEach(el => {
+    el.addEventListener('click', () => {
+      activeApp = el.dataset.aid;
+      renderEditor();
+    });
+  });
+
+  document.querySelector('#addApproachBtn')?.addEventListener('click', () => {
+    const name = prompt('Approach name', 'Approach ' + (prob.approaches.length + 1));
+    if (!name) return;
+    const a = { id: uid(), name, language: 'cpp', complexity: '', code: '// Write your solution here\n' };
+    prob.approaches.push(a);
+    activeApp = a.id;
+    persist(false);
+    renderEditor();
+  });
+
+  if (!app) return;
+
+  bind('#appName', v => app.name = v);
+  const updateComplexity = () => {
+    const t = document.querySelector('#appTime')?.value || '';
+    const s = document.querySelector('#appSpace')?.value || '';
+    if (t && s) app.complexity = `${t} time · ${s} space`;
+    else if (t) app.complexity = t;
+    else if (s) app.complexity = s;
+    else app.complexity = '';
+    renderTree();
+  };
+  bind('#appTime', updateComplexity);
+  bind('#appSpace', updateComplexity);
+  bind('#langSelect', v => { app.language = v; });
+
+  document.querySelector('#delApproachBtn')?.addEventListener('click', () => {
+    if (!confirm(`Delete "${app.name}"?`)) return;
+    const i = prob.approaches.indexOf(app);
+    prob.approaches.splice(i, 1);
+    activeApp = prob.approaches[Math.min(i, prob.approaches.length - 1)]?.id || null;
+    persist(false);
+    renderEditor();
+  });
+
+  // Code editor
+  const ta = document.querySelector('#codeTA');
+  const hl = document.querySelector('#codeHighlight');
+  const lineNums = document.querySelector('#codeLines');
+  const lc = document.querySelector('#lineCount');
+
+  const paint = () => {
+    hl.innerHTML = highlight(ta.value, app.language);
+    hl.scrollTop = ta.scrollTop;
+    hl.scrollLeft = ta.scrollLeft;
+    const lines = ta.value.split('\n');
+    lineNums.innerHTML = lines.map((_,i) => `<div>${i+1}</div>`).join('');
+    lineNums.scrollTop = ta.scrollTop;
+    if (lc) lc.textContent = `${lines.length} lines`;
+  };
+
+  ta.addEventListener('input', () => { app.code = ta.value; changed(); paint(); });
+  ta.addEventListener('scroll', () => {
+    hl.scrollTop = ta.scrollTop;
+    hl.scrollLeft = ta.scrollLeft;
+    lineNums.scrollTop = ta.scrollTop;
+  });
+
+  ta.addEventListener('keydown', e => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const s = ta.selectionStart, end = ta.selectionEnd;
+      ta.value = ta.value.slice(0, s) + '  ' + ta.value.slice(end);
+      ta.selectionStart = ta.selectionEnd = s + 2;
+      ta.dispatchEvent(new Event('input'));
+      return;
+    }
+    const pairs = { '(': ')', '[': ']', '{': '}', '"': '"', "'": "'" };
+    if (pairs[e.key] && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+      const s = ta.selectionStart, end = ta.selectionEnd;
+      ta.value = ta.value.slice(0, s) + e.key + pairs[e.key] + ta.value.slice(end);
+      ta.selectionStart = ta.selectionEnd = s + 1;
+      ta.dispatchEvent(new Event('input'));
+      return;
+    }
+    if (e.key === 'Enter') {
+      const s = ta.selectionStart, line = ta.value.slice(0, s).split('\n').pop();
+      const indent = (line.match(/^\s*/) || [''])[0];
+      e.preventDefault();
+      const extra = /[({[]\s*$/.test(line) ? '  ' : '';
+      const ins = '\n' + indent + extra;
+      ta.value = ta.value.slice(0, s) + ins + ta.value.slice(ta.selectionEnd);
+      const caret = s + ins.length;
+      ta.selectionStart = ta.selectionEnd = caret;
+      ta.dispatchEvent(new Event('input'));
+    }
+  });
+
+  paint();
+}
+
+// ─── Syntax highlight ──────────────────────────────────────────────────────
+function highlight(src, lang) {
+  const pat = /(?:\/\/[^\n]*|#[^\n]*|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`|\b(?:auto|bool|break|case|catch|char|class|const|continue|def|delete|do|double|else|enum|explicit|export|extern|false|float|for|friend|goto|if|import|inline|int|lambda|let|long|namespace|new|nullptr|operator|override|private|protected|public|register|return|short|signed|sizeof|static|struct|switch|template|this|throw|true|try|typedef|typename|union|unsigned|using|virtual|void|volatile|while|and|or|not|in|is|from|pass|yield|async|await|fn|mut|pub|impl|trait|type|where|mod|use|match|with|raise|del|elif|except|finally|global|nonlocal|print|super|self|None|True|False)\b|\b(?:vector|string|unordered_map|map|set|unordered_set|stack|queue|deque|pair|tuple|list|dict|int|str|float|bool|Array|Object|Promise|Function|Node|ListNode|TreeNode|Graph)\b|\b(?:0x[\da-f]+|\d+(?:\.\d+)?)\b)/gi;
+  let html = '', last = 0;
+  src.replace(pat, (tok, idx) => {
+    html += esc(src.slice(last, idx));
+    const cls = /^\/\//.test(tok) || /^#/.test(tok) ? 'tk-comment'
+      : /^["'`]/.test(tok) ? 'tk-string'
+      : /^\d|^0x/i.test(tok) ? 'tk-number'
+      : /^(vector|string|unordered_map|map|set|unordered_set|stack|queue|deque|pair|tuple|list|dict|Array|Object|Promise|Function|Node|ListNode|TreeNode|Graph)$/i.test(tok) ? 'tk-type'
+      : 'tk-keyword';
+    html += `<span class="${cls}">${esc(tok)}</span>`;
+    last = idx + tok.length;
+  });
+  return html + esc(src.slice(last)) + '\n';
+}
+
+function esc(s = '') {
+  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+// ─── Folder modal ──────────────────────────────────────────────────────────
+let editFolderId = null;
+
+function openFolderModal(fid = null) {
+  editFolderId = fid;
+  const f = fid ? getFolder(fid) : null;
+  document.querySelector('#folderModalTitle').textContent = fid ? 'Rename Folder' : 'New Folder';
+  document.querySelector('#folderNameInput').value = f ? f.name : '';
+
+  // Build color swatches
+  const sel = f?.color || COLORS[Math.floor(Math.random() * COLORS.length)];
+  document.querySelector('#colorRow').innerHTML = COLORS.map(c =>
+    `<div class="color-swatch ${c===sel?'selected':''}" style="background:${c}" data-color="${c}" title="${c}"></div>`
+  ).join('');
+
+  document.querySelectorAll('.color-swatch').forEach(sw => {
+    sw.addEventListener('click', () => {
+      document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+      sw.classList.add('selected');
+    });
+  });
+
+  document.querySelector('#folderModal').classList.add('open');
+  setTimeout(() => document.querySelector('#folderNameInput').focus(), 30);
+}
+
+document.querySelector('#folderForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const name = document.querySelector('#folderNameInput').value.trim();
+  const color = document.querySelector('.color-swatch.selected')?.dataset.color || COLORS[0];
+  if (!name) return;
+
+  if (editFolderId) {
+    const f = getFolder(editFolderId);
+    f.name = name; f.color = color;
+  } else {
+    const f = { id: uid(), name, color, open: true, problems: [] };
+    db.folders.unshift(f);
+    activeFolder = f.id;
+  }
+  closeFolderModal();
+  persist(false);
+  renderTree();
+});
+
+function closeFolderModal() {
+  document.querySelector('#folderModal').classList.remove('open');
+  document.querySelector('#folderForm').reset();
+  editFolderId = null;
+}
+document.querySelector('#cancelFolderBtn').addEventListener('click', closeFolderModal);
+document.querySelector('#folderModal').addEventListener('click', e => { if (e.target.id === 'folderModal') closeFolderModal(); });
+
+// ─── Problem modal ─────────────────────────────────────────────────────────
+let probModalFolder = null;
+
+function openProblemModal(fid) {
+  probModalFolder = fid;
+  document.querySelector('#probTitleInput').value = '';
+  document.querySelector('#probUrlInput').value = '';
+  document.querySelector('#probDiffInput').value = 'Medium';
+  document.querySelector('#problemModal').classList.add('open');
+  setTimeout(() => document.querySelector('#probTitleInput').focus(), 30);
+}
+
+document.querySelector('#problemForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const title = document.querySelector('#probTitleInput').value.trim();
+  const diff = document.querySelector('#probDiffInput').value;
+  const url = document.querySelector('#probUrlInput').value.trim();
+  if (!title) return;
+  const p = {
+    id: uid(), title, difficulty: diff, problemUrl: url, notes: '',
+    approaches: [{ id: uid(), name: 'My Approach', language: 'cpp', complexity: '', code: '// Write your solution here\n' }]
+  };
+  getFolder(probModalFolder).problems.push(p);
+  activeFolder = probModalFolder;
+  activeProb = p.id;
+  activeApp = p.approaches[0].id;
+  closeProblemModal();
+  persist(false);
+  renderTree();
+  renderEditor();
+}); 
+
+function closeProblemModal() {
+  document.querySelector('#problemModal').classList.remove('open');
+  document.querySelector('#problemForm').reset();
+}
+document.querySelector('#cancelProbBtn').addEventListener('click', closeProblemModal);
+document.querySelector('#problemModal').addEventListener('click', e => { if (e.target.id === 'problemModal') closeProblemModal(); });
+
+// ─── Context menu ──────────────────────────────────────────────────────────
+function openCtxMenu(x, y) {
+  const m = document.querySelector('#ctxMenu');
+  m.style.left = `${Math.min(x, window.innerWidth - 160)}px`;
+  m.style.top = `${Math.min(y, window.innerHeight - 130)}px`;
+  m.classList.add('open');
+}
+function closeCtxMenu() { document.querySelector('#ctxMenu').classList.remove('open'); }
+
+document.querySelector('#ctxRename').addEventListener('click', () => {
+  closeCtxMenu();
+  openFolderModal(ctxFolderId);
+});
+document.querySelector('#ctxAddProblem').addEventListener('click', () => {
+  closeCtxMenu();
+  openProblemModal(ctxFolderId);
+  const f = getFolder(ctxFolderId);
+  if (f) f.open = true;
+  renderTree();
+});
+document.querySelector('#ctxDelete').addEventListener('click', () => {
+  const f = getFolder(ctxFolderId);
+  if (!f) return;
+  if (!confirm(`Delete folder "${f.name}" and all ${f.problems.length} problem(s)?`)) return;
+  closeCtxMenu();
+  db.folders = db.folders.filter(fl => fl.id !== ctxFolderId);
+  if (activeFolder === ctxFolderId) { activeFolder = null; activeProb = null; activeApp = null; }
+  persist(false);
+  renderTree();
+  renderEditor();
+});
+document.addEventListener('click', e => {
+  if (!e.target.closest('#ctxMenu') && !e.target.closest('.folder-menu-btn')) closeCtxMenu();
+});
+
+// ─── Search ────────────────────────────────────────────────────────────────
+document.querySelector('#search').addEventListener('input', e => {
+  searchQ = e.target.value;
+  renderTree();
+});
+
+// ─── Theme ─────────────────────────────────────────────────────────────────
+function applyTheme() {
+  document.documentElement.dataset.theme = db.theme;
+  document.querySelector('#themeBtn').textContent = db.theme === 'dark' ? 'Light' : 'Dark';
+}
+document.querySelector('#themeBtn').addEventListener('click', () => {
+  db.theme = db.theme === 'dark' ? 'light' : 'dark';
+  applyTheme();
+  persist(false);
+});
+
+// ─── Save ──────────────────────────────────────────────────────────────────
+document.querySelector('#saveBtn').addEventListener('click', () => persist(true));
+
+// ─── Import / Export / Sync ───────────────────────────────────────────────
+document.querySelector('#syncBtn')?.addEventListener('click', async () => {
+  if (fbSynced) {
+    toast('Cloud Synced — Firebase is active');
+  } else {
+    toast('Connecting to Firebase...');
+    const data = await fbLoad();
+    if (data) {
+      fbSynced = true;
+      updateSyncUI();
+      toast('Cloud connected!');
+    } else {
+      toast('Cloud unavailable — saved locally');
+    }
+  }
+});
+
+
+document.querySelector('#exportBtn').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'codebook-export.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('Exported ✓');
+});
+
+document.querySelector('#importInput').addEventListener('change', async e => {
+  try {
+    const next = JSON.parse(await e.target.files[0].text());
+    if (!Array.isArray(next.folders)) throw new Error('Invalid');
+    db = next;
+    activeFolder = db.folders[0]?.id || null;
+    activeProb = db.folders[0]?.problems[0]?.id || null;
+    activeApp = null;
+    persist(false);
+    applyTheme();
+    renderTree();
+    renderEditor();
+    toast('Imported ✓');
+  } catch {
+    alert('Invalid Codebook file. Make sure it was exported from this app.');
+  }
+  e.target.value = '';
+});
+
+// ─── Modals & misc buttons ─────────────────────────────────────────────────
+document.querySelector('#newFolderBtn').addEventListener('click', () => openFolderModal());
+document.querySelector('#emptyNewFolderBtn')?.addEventListener('click', () => openFolderModal());
+
+// Mobile sidebar
+document.querySelector('#menuBtn').addEventListener('click', () => document.querySelector('#sidebar').classList.add('open'));
+function closeSidebar() { document.querySelector('#sidebar').classList.remove('open'); }
+document.addEventListener('click', e => {
+  if (window.innerWidth <= 680 && !e.target.closest('#sidebar') && !e.target.closest('#menuBtn'))
+    closeSidebar();
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  const mod = e.ctrlKey || e.metaKey;
+  if (mod && e.key.toLowerCase() === 's') { e.preventDefault(); persist(true); }
+  if (mod && e.key.toLowerCase() === 'n') { e.preventDefault(); openFolderModal(); }
+  if (e.key === 'Escape') { closeFolderModal(); closeProblemModal(); closeCtxMenu(); closeSidebar(); closeTracker(); }
+  if ((e.key === 't' || e.key === 'T') && !mod && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) {
+    e.preventDefault();
+    const ov = document.querySelector('#trackerOverlay');
+    if (ov && ov.style.display === 'flex') closeTracker();
+    else openTracker();
+  }
+});
+
+// Auto-save on unload
+window.addEventListener('beforeunload', () => { if (dirty) persist(false); });
+
+// ─── Year Tracker & Time Dashboard (One-Page Fullscreen) ───────────────────
+let trackerYear = new Date().getFullYear();
+let trackerTimer = null;
+
+const MONTH_SHORT = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+const MONTH_FULL = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+
+function isLeapYear(y) {
+  return (y % 4 === 0 && y % 100 !== 0) || (y % 400 === 0);
+}
+
+function getDaysInYear(y) {
+  return isLeapYear(y) ? 366 : 365;
+}
+
+function getDayOfYear(d) {
+  const start = new Date(d.getFullYear(), 0, 0);
+  const diff = d - start + ((start.getTimezoneOffset() - d.getTimezoneOffset()) * 60 * 1000);
+  return Math.floor(diff / (1000 * 60 * 60 * 24));
+}
+
+function inspectDate(y, m, d) {
+  const target = new Date(y, m, d);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const tTime = target.getTime();
+  const daysInYear = getDaysInYear(y);
+  const dayOfYear = getDayOfYear(target);
+
+  const dateStr = target.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  const idEl = document.querySelector('#inspectorDate');
+  if (idEl) idEl.textContent = dateStr;
+
+  let statusText = 'UPCOMING';
+  let hoursText = '0.0 / 24 hrs passed (0%)';
+
+  if (tTime < today) {
+    statusText = 'PASSED';
+    hoursText = '24.0 / 24 hrs passed (100%)';
+  } else if (tTime === today) {
+    statusText = 'TODAY';
+    const hrs = now.getHours();
+    const mins = now.getMinutes();
+    const hoursPassed = hrs + mins / 60;
+    const pct = ((hoursPassed / 24) * 100).toFixed(1);
+    hoursText = `${hrs}h ${mins}m / 24h passed (${pct}%) · ${23 - hrs}h ${59 - mins}m left`;
+  }
+
+  const isEl = document.querySelector('#inspectorStatus');
+  if (isEl) isEl.textContent = statusText;
+  const ihEl = document.querySelector('#inspectorHours');
+  if (ihEl) ihEl.textContent = hoursText;
+  const idyEl = document.querySelector('#inspectorDayOfYear');
+  if (idyEl) idyEl.textContent = `Day ${dayOfYear} of ${daysInYear} (${((dayOfYear / daysInYear) * 100).toFixed(1)}%)`;
+}
+
+function inspectHour(h) {
+  const now = new Date();
+  const curH = now.getHours();
+  const mins = now.getMinutes();
+  const startStr = `${String(h).padStart(2, '0')}:00`;
+  const endStr = `${String((h + 1) % 24).padStart(2, '0')}:00`;
+  
+  const idEl = document.querySelector('#inspectorDate');
+  if (idEl) idEl.textContent = `Today · Hour Slot ${startStr} - ${endStr}`;
+
+  let status = 'UPCOMING';
+  let desc = '0 min passed';
+  if (h < curH) {
+    status = 'PASSED';
+    desc = '60 mins / 60 mins passed (100%)';
+  } else if (h === curH) {
+    status = 'CURRENT HOUR';
+    desc = `${mins} mins / 60 mins passed (${((mins / 60) * 100).toFixed(0)}%)`;
+  }
+
+  const isEl = document.querySelector('#inspectorStatus');
+  if (isEl) isEl.textContent = status;
+  const ihEl = document.querySelector('#inspectorHours');
+  if (ihEl) ihEl.textContent = desc;
+  const idyEl = document.querySelector('#inspectorDayOfYear');
+  if (idyEl) idyEl.textContent = `Hour ${h + 1} of 24`;
+}
+
+function updateLiveClockAndHours() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2, '0');
+  const m = String(now.getMinutes()).padStart(2, '0');
+  const s = String(now.getSeconds()).padStart(2, '0');
+
+  // Realtime aesthetic digital clock
+  const timeEl = document.querySelector('#trackerClockTime');
+  if (timeEl) timeEl.textContent = `${h}:${m}:${s}`;
+
+  const dateEl = document.querySelector('#trackerClockDate');
+  if (dateEl) {
+    dateEl.textContent = now.toLocaleDateString(undefined, {
+      weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+    });
+  }
+
+  // Update vertical hour track fill & badge
+  const passedMins = now.getHours() * 60 + now.getMinutes();
+  const dayPct = ((passedMins / 1440) * 100).toFixed(1);
+  const trackFill = document.querySelector('#thoursTrackFill');
+  if (trackFill) trackFill.style.height = `${dayPct}%`;
+
+  const badge = document.querySelector('#thoursBadge');
+  if (badge) badge.textContent = `${(now.getHours() + now.getMinutes() / 60).toFixed(1)} / 24h`;
+
+  const pText = document.querySelector('#thoursProgressText');
+  if (pText) pText.textContent = `${dayPct}% of today passed`;
+
+  // Quick stats
+  const currentYear = now.getFullYear();
+  const daysInYear = getDaysInYear(trackerYear);
+  let daysPassed = 0;
+  if (trackerYear < currentYear) daysPassed = daysInYear;
+  else if (trackerYear > currentYear) daysPassed = 0;
+  else daysPassed = getDayOfYear(now);
+
+  const daysLeft = Math.max(0, daysInYear - daysPassed);
+  const yearPct = ((daysPassed / daysInYear) * 100).toFixed(1);
+
+  const qyp = document.querySelector('#quickYearPct');
+  if (qyp) qyp.textContent = `${yearPct}%`;
+  const qdl = document.querySelector('#quickDaysLeft');
+  if (qdl) qdl.textContent = `${daysLeft}`;
+}
+
+function isMobile() { return window.innerWidth <= 680; }
+
+function renderMobileMonths() {
+  const wrap = document.querySelector('#mobMonthsWrap');
+  if (!wrap) return;
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const todayZero = new Date(currentYear, now.getMonth(), now.getDate()).getTime();
+  const DOW = ['SU','MO','TU','WE','TH','FR','SA'];
+  let html = '';
+
+  for (let m = 0; m < 12; m++) {
+    const daysInMonth = new Date(trackerYear, m + 1, 0).getDate();
+    const firstDow = new Date(trackerYear, m, 1).getDay(); // 0=Sun
+    let passed = 0;
+
+    // Day-of-week header
+    const dowHtml = DOW.map(d => `<span class="mob-dow-lbl">${d}</span>`).join('');
+
+    // Empty leading cells
+    let daysHtml = '';
+    for (let blank = 0; blank < firstDow; blank++) {
+      daysHtml += `<div class="mob-day empty"></div>`;
+    }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dTime = new Date(trackerYear, m, d).getTime();
+      let cls = 'mob-day';
+      if (dTime < todayZero) { cls += ' past'; passed++; }
+      else if (dTime === todayZero) cls += ' today';
+      else cls += ' future';
+      daysHtml += `<div class="${cls}" data-y="${trackerYear}" data-m="${m}" data-d="${d}">${d}</div>`;
+    }
+
+    html += `
+      <div class="mob-month-card">
+        <div class="mob-month-head">
+          <span class="mob-month-name">${MONTH_FULL[m].toUpperCase()}</span>
+          <span class="mob-month-stat">${passed}/${daysInMonth} passed</span>
+        </div>
+        <div class="mob-dow-row">${dowHtml}</div>
+        <div class="mob-days-grid">${daysHtml}</div>
+      </div>
+    `;
+  }
+  wrap.innerHTML = html;
+
+  // Tap listeners
+  wrap.querySelectorAll('.mob-day:not(.empty)').forEach(cell => {
+    cell.addEventListener('click', () => {
+      inspectDate(Number(cell.dataset.y), Number(cell.dataset.m), Number(cell.dataset.d));
+    });
+  });
+}
+
+function renderTracker() {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const todayZero = new Date(currentYear, now.getMonth(), now.getDate()).getTime();
+
+  const yl = document.querySelector('#trackerYearLabel');
+  if (yl) yl.textContent = trackerYear;
+
+  // 1. Render Days Column Header (1..31)
+  const colsHeader = document.querySelector('#tgridColsHeader');
+  if (colsHeader) {
+    let colsHtml = '';
+    for (let d = 1; d <= 31; d++) {
+      colsHtml += `<span>${d}</span>`;
+    }
+    colsHeader.innerHTML = colsHtml;
+  }
+
+  // 2. Render 12 Month Rows in Year Grid (desktop only)
+  const monthsBody = document.querySelector('#tgridMonthsBody');
+  if (monthsBody && !isMobile()) {
+    let rowsHtml = '';
+    for (let m = 0; m < 12; m++) {
+      const daysInMonth = new Date(trackerYear, m + 1, 0).getDate();
+      let monthPassed = 0;
+      let daysHtml = '';
+
+      for (let d = 1; d <= 31; d++) {
+        if (d <= daysInMonth) {
+          const dTime = new Date(trackerYear, m, d).getTime();
+          let cls = 'tgrid-cell';
+          if (dTime < todayZero) {
+            cls += ' past';
+            monthPassed++;
+          } else if (dTime === todayZero) {
+            cls += ' today';
+          } else {
+            cls += ' future';
+          }
+          daysHtml += `
+            <div class="${cls}" data-y="${trackerYear}" data-m="${m}" data-d="${d}" title="${MONTH_FULL[m]} ${d}, ${trackerYear}">
+              <span class="cell-num">${d}</span>
+            </div>
+          `;
+        } else {
+          daysHtml += `<div class="tgrid-cell empty">-</div>`;
+        }
+      }
+
+      rowsHtml += `
+        <div class="tgrid-row">
+          <span class="tgrid-month-lbl">${MONTH_SHORT[m]}</span>
+          <div class="tgrid-row-days">${daysHtml}</div>
+          <span class="tgrid-row-stat">${monthPassed}/${daysInMonth}</span>
+        </div>
+      `;
+    }
+    monthsBody.innerHTML = rowsHtml;
+  }
+
+  // 2b. Mobile month cards
+  if (isMobile()) renderMobileMonths();
+
+  // 3. Render 24 Vertical Hour Segments
+  const hoursSegments = document.querySelector('#thoursSegments');
+  if (hoursSegments) {
+    const curHour = now.getHours();
+    let hoursHtml = '';
+    for (let h = 0; h < 24; h++) {
+      const hStr = `${String(h).padStart(2, '0')}:00`;
+      let cls = 'thour-seg';
+      let tag = '';
+      if (h < curHour) {
+        cls += ' past';
+        tag = '<span class="thour-status">24h</span>';
+      } else if (h === curHour) {
+        cls += ' current';
+        tag = `<span class="thour-status">${String(now.getMinutes()).padStart(2, '0')}m</span>`;
+      } else {
+        cls += ' future';
+        tag = '<span class="thour-status">--</span>';
+      }
+      hoursHtml += `
+        <div class="${cls}" data-h="${h}" title="Hour ${hStr}">
+          <span class="thour-lbl">${hStr}</span>
+          ${tag}
+        </div>
+      `;
+    }
+    hoursSegments.innerHTML = hoursHtml;
+  }
+
+  // Attach hover & click listeners to grid cells
+  document.querySelectorAll('.tgrid-cell:not(.empty)').forEach(cell => {
+    cell.addEventListener('mouseenter', () => {
+      inspectDate(Number(cell.dataset.y), Number(cell.dataset.m), Number(cell.dataset.d));
+    });
+    cell.addEventListener('click', () => {
+      inspectDate(Number(cell.dataset.y), Number(cell.dataset.m), Number(cell.dataset.d));
+    });
+  });
+
+  // Attach hover & click listeners to hour segments
+  document.querySelectorAll('.thour-seg').forEach(seg => {
+    seg.addEventListener('mouseenter', () => {
+      inspectHour(Number(seg.dataset.h));
+    });
+    seg.addEventListener('click', () => {
+      inspectHour(Number(seg.dataset.h));
+    });
+  });
+
+  // Update clock & stats
+  updateLiveClockAndHours();
+
+  // Default inspector to today
+  inspectDate(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+function openTracker() {
+  const ov = document.querySelector('#trackerOverlay');
+  if (!ov) return;
+  ov.style.display = 'flex';
+  document.querySelector('#tabTracker')?.classList.add('active');
+  document.querySelector('#tabCodebook')?.classList.remove('active');
+  renderTracker();
+  if (trackerTimer) clearInterval(trackerTimer);
+  trackerTimer = setInterval(updateLiveClockAndHours, 1000);
+}
+
+function closeTracker() {
+  const ov = document.querySelector('#trackerOverlay');
+  if (!ov) return;
+  ov.style.display = 'none';
+  document.querySelector('#tabTracker')?.classList.remove('active');
+  document.querySelector('#tabCodebook')?.classList.add('active');
+  if (trackerTimer) clearInterval(trackerTimer);
+  trackerTimer = null;
+  if (document.fullscreenElement) {
+    document.exitFullscreen?.().catch(() => {});
+  }
+}
+
+function toggleTrackerFullscreen() {
+  const overlay = document.querySelector('#trackerOverlay');
+  if (!document.fullscreenElement) {
+    if (overlay.requestFullscreen) overlay.requestFullscreen().catch(() => {});
+    else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {});
+  } else {
+    if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+  }
+}
+
+document.addEventListener('fullscreenchange', () => {
+  const btn = document.querySelector('#trackerFullscreenBtn');
+  if (btn) {
+    btn.textContent = document.fullscreenElement ? 'Exit Fullscreen' : 'Fullscreen';
+  }
+});
+
+// Tracker Event Listeners
+document.querySelector('#openTrackerBtn')?.addEventListener('click', openTracker);
+document.querySelector('#tabTracker')?.addEventListener('click', openTracker);
+document.querySelector('#tabCodebook')?.addEventListener('click', closeTracker);
+document.querySelector('#closeTrackerBtn')?.addEventListener('click', closeTracker);
+document.querySelector('#trackerFullscreenBtn')?.addEventListener('click', toggleTrackerFullscreen);
+
+document.querySelector('#trackerPrevYear')?.addEventListener('click', () => {
+  trackerYear--;
+  renderTracker();
+});
+document.querySelector('#trackerNextYear')?.addEventListener('click', () => {
+  trackerYear++;
+  renderTracker();
+});
+document.querySelector('#trackerTodayBtn')?.addEventListener('click', () => {
+  trackerYear = new Date().getFullYear();
+  renderTracker();
+});
+
+// ─── Toast ─────────────────────────────────────────────────────────────────
+function toast(msg) {
+  const t = document.querySelector('#toast');
+  document.querySelector('#toastText').textContent = msg;
+  t.classList.add('show');
+  clearTimeout(window._toast);
+  window._toast = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+// ─── Boot ──────────────────────────────────────────────────────────────────
+applyTheme();
+renderTree();
+renderEditor();
+
+// Load from Firebase on startup — merge with localStorage
+(async () => {
+  const cloudData = await fbLoad();
+  if (cloudData) {
+    // Firebase has data — use it (it's the source of truth)
+    db = cloudData;
+    localStorage.setItem('codebook-v2', JSON.stringify(db));
+    fbSynced = true;
+    updateSyncUI();
+    // Reset active selections to valid ones
+    if (!activeFolder || !getFolder(activeFolder)) {
+      activeFolder = db.folders[0]?.id || null;
+      activeProb = db.folders[0]?.problems[0]?.id || null;
+      const prob = getProb(activeFolder, activeProb);
+      activeApp = prob?.approaches[0]?.id || null;
+    }
+    renderTree();
+    renderEditor();
+    applyTheme();
+    toast('Loaded from Firebase Cloud');
+  } else {
+    // No cloud data yet — push local data up to Firebase
+    fbSynced = false;
+    updateSyncUI();
+    await fbSave(JSON.stringify(db));
+    if (fbSynced) toast('Data uploaded to Firebase Cloud');
+  }
+})();
+
+// Re-attach empty state btn after render
+document.querySelector('#emptyNewFolderBtn')?.addEventListener('click', () => openFolderModal());
+</script>
+</body>
+</html>
