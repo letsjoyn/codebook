@@ -1877,7 +1877,12 @@ require(['vs/editor/editor.main'], function() {
     renderLineHighlight: 'all',
     bracketPairColorization: { enabled: true },
     formatOnPaste: true,
-    padding: { top: 16, bottom: 16 }
+    padding: { top: 16, bottom: 16 },
+    quickSuggestions: false,
+    suggestOnTriggerCharacters: false,
+    parameterHints: { enabled: false },
+    wordBasedSuggestions: 'off',
+    snippetSuggestions: 'none'
   });
 
   window.monacoEditor.onDidChangeModelContent(() => {
